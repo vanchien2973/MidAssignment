@@ -1,0 +1,11 @@
+/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/bin/Debug/net9.0/LibraryManagementSystem.Domain.deps.json
+/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/bin/Debug/net9.0/LibraryManagementSystem.Domain.dll
+/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/bin/Debug/net9.0/LibraryManagementSystem.Domain.pdb
+/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/obj/Debug/net9.0/LibraryManagementSystem.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/obj/Debug/net9.0/LibraryManagementSystem.Domain.AssemblyInfoInputs.cache
+/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/obj/Debug/net9.0/LibraryManagementSystem.Domain.AssemblyInfo.cs
+/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/obj/Debug/net9.0/LibraryManagementSystem.Domain.csproj.CoreCompileInputs.cache
+/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/obj/Debug/net9.0/LibraryManagementSystem.Domain.dll
+/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/obj/Debug/net9.0/refint/LibraryManagementSystem.Domain.dll
+/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/obj/Debug/net9.0/LibraryManagementSystem.Domain.pdb
+/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/obj/Debug/net9.0/ref/LibraryManagementSystem.Domain.dll
