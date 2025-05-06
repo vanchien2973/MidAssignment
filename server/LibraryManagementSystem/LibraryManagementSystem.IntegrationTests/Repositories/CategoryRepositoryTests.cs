@@ -1,219 +1,260 @@
+using LibraryManagementSystem.Domain.Entities;
+using LibraryManagementSystem.Infrastructure.Data.Context;
+using LibraryManagementSystem.Infrastructure.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
+using NUnit.Framework;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using LibraryManagementSystem.Domain.Entities;
-using LibraryManagementSystem.Infrastructure.Data.Repositories;
-using NUnit.Framework;
 
 namespace LibraryManagementSystem.IntegrationTests.Repositories
 {
-    public class CategoryRepositoryTests : TestBase
+    [TestFixture]
+    public class CategoryRepositoryTests
     {
-        private CategoryRepository _categoryRepository;
+        private DbContextOptions<LibraryDbContext> _options;
+        private LibraryDbContext _context;
+        private CategoryRepository _repository;
 
-        public override async Task Setup()
+        [SetUp]
+        public void Setup()
         {
-            await base.Setup();
-            _categoryRepository = new CategoryRepository(DbContext);
+            _options = new DbContextOptionsBuilder<LibraryDbContext>()
+                .UseInMemoryDatabase(databaseName: $"LibraryTestDb_{Guid.NewGuid()}")
+                .Options;
+
+            _context = new LibraryDbContext(_options);
+            _repository = new CategoryRepository(_context);
+
+            SeedDatabase();
         }
 
-        protected override async Task SeedDataAsync()
+        [TearDown]
+        public void TearDown()
         {
-            // Create test categories
+            if (_repository is IDisposable disposableRepository)
+            {
+                disposableRepository.Dispose();
+            }
+            _context?.Database.EnsureDeleted();
+            _context?.Dispose();
+        }
+
+        private void SeedDatabase()
+        {
             var categories = new[]
             {
                 new Category
                 {
                     CategoryId = Guid.NewGuid(),
                     CategoryName = "Fiction",
-                    Description = "Fiction books"
-                },
-                new Category
-                {
-                    CategoryId = Guid.NewGuid(),
-                    CategoryName = "Non-Fiction",
-                    Description = "Non-Fiction books"
+                    Description = "Fiction books",
+                    CreatedDate = DateTime.UtcNow.AddDays(-30)
                 },
                 new Category
                 {
                     CategoryId = Guid.NewGuid(),
                     CategoryName = "Science",
-                    Description = "Science books"
+                    Description = "Science books",
+                    CreatedDate = DateTime.UtcNow.AddDays(-25)
+                },
+                new Category
+                {
+                    CategoryId = Guid.NewGuid(),
+                    CategoryName = "History",
+                    Description = "History books",
+                    CreatedDate = DateTime.UtcNow.AddDays(-20)
+                },
+                new Category
+                {
+                    CategoryId = Guid.NewGuid(),
+                    CategoryName = "Technology",
+                    Description = "Technology books",
+                    CreatedDate = DateTime.UtcNow.AddDays(-15)
                 }
             };
-            
-            await DbContext.Categories.AddRangeAsync(categories);
-            await DbContext.SaveChangesAsync();
+            _context.Categories.AddRange(categories);
+            _context.SaveChanges();
         }
 
         [Test]
-        public async Task GetByIdAsync_ExistingCategory_ReturnsCorrectCategory()
+        public async Task GetByIdAsync_ExistingId_ReturnsCategory()
         {
             // Arrange
-            var existingCategory = await DbContext.Categories.FirstAsync();
-            
+            var categoryId = _context.Categories.First().CategoryId;
+
             // Act
-            var category = await _categoryRepository.GetByIdAsync(existingCategory.CategoryId);
-            
+            var result = await _repository.GetByIdAsync(categoryId);
+
             // Assert
-            Assert.That(category, Is.Not.Null);
-            Assert.That(category.CategoryId, Is.EqualTo(existingCategory.CategoryId));
-            Assert.That(category.CategoryName, Is.EqualTo(existingCategory.CategoryName));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.CategoryId, Is.EqualTo(categoryId));
         }
 
         [Test]
-        public async Task GetByIdAsync_NonExistingCategory_ReturnsNull()
+        public async Task GetByIdAsync_NonExistentId_ReturnsNull()
         {
             // Arrange
-            var nonExistingId = Guid.NewGuid();
-            
+            var nonExistentId = Guid.NewGuid();
+
             // Act
-            var category = await _categoryRepository.GetByIdAsync(nonExistingId);
-            
+            var result = await _repository.GetByIdAsync(nonExistentId);
+
             // Assert
-            Assert.That(category, Is.Null);
+            Assert.That(result, Is.Null);
         }
 
         [Test]
-        public async Task GetAllAsync_DefaultParameters_ReturnsPaginatedResults()
-        {
-            // Arrange
-            int pageNumber = 1;
-            int pageSize = 2;
-            
-            // Act
-            var categories = (await _categoryRepository.GetAllAsync(pageNumber, pageSize)).ToList();
-            
-            // Assert
-            Assert.That(categories, Is.Not.Null);
-            Assert.That(categories.Count, Is.EqualTo(pageSize));
-        }
-
-        [Test]
-        public async Task GetAllAsync_WithSorting_ReturnsSortedResults()
+        public async Task GetAllAsync_ReturnsAllCategories()
         {
             // Arrange
             int pageNumber = 1;
             int pageSize = 10;
-            
-            // Act - Sort by name ascending
-            var categoriesAsc = (await _categoryRepository.GetAllAsync(pageNumber, pageSize, "name", "asc")).ToList();
-            
-            // Assert
-            Assert.That(categoriesAsc, Is.Not.Null);
-            Assert.That(categoriesAsc, Is.Ordered.By("CategoryName"));
-            
-            // Act - Sort by name descending
-            var categoriesDesc = (await _categoryRepository.GetAllAsync(pageNumber, pageSize, "name", "desc")).ToList();
-            
-            // Assert
-            Assert.That(categoriesDesc, Is.Not.Null);
-            Assert.That(categoriesDesc, Is.Ordered.Descending.By("CategoryName"));
-        }
 
-        [Test]
-        public async Task GetByNameAsync_ExistingName_ReturnsCorrectCategory()
-        {
             // Act
-            var category = await _categoryRepository.GetByNameAsync("Fiction");
-            
+            var result = await _repository.GetAllAsync(pageNumber, pageSize);
+
             // Assert
-            Assert.That(category, Is.Not.Null);
-            Assert.That(category.CategoryName, Is.EqualTo("Fiction"));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(4));
         }
 
         [Test]
-        public async Task GetByNameAsync_NonExistingName_ReturnsNull()
-        {
-            // Act
-            var category = await _categoryRepository.GetByNameAsync("Non-Existing Category");
-            
-            // Assert
-            Assert.That(category, Is.Null);
-        }
-
-        [Test]
-        public async Task CategoryExistsAsync_ExistingId_ReturnsTrue()
+        public async Task GetAllAsync_WithSearchTerm_ReturnsFilteredCategories()
         {
             // Arrange
-            var existingCategory = await DbContext.Categories.FirstAsync();
-            
+            int pageNumber = 1;
+            int pageSize = 10;
+            string searchTerm = "fic"; // Sẽ tìm "Fiction"
+
             // Act
-            var exists = await _categoryRepository.CategoryExistsAsync(existingCategory.CategoryId);
-            
+            var result = await _repository.GetAllAsync(pageNumber, pageSize, searchTerm: searchTerm);
+
             // Assert
-            Assert.That(exists, Is.True);
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(1));
+            Assert.That(result.First().CategoryName, Is.EqualTo("Fiction"));
         }
 
         [Test]
-        public async Task CategoryExistsAsync_NonExistingId_ReturnsFalse()
+        public async Task GetAllAsync_WithSorting_ReturnsSortedCategories()
         {
             // Arrange
-            var nonExistingId = Guid.NewGuid();
-            
+            int pageNumber = 1;
+            int pageSize = 10;
+            string sortBy = "name";
+            string sortOrder = "desc";
+
             // Act
-            var exists = await _categoryRepository.CategoryExistsAsync(nonExistingId);
-            
+            var result = await _repository.GetAllAsync(pageNumber, pageSize, sortBy, sortOrder);
+            var list = result.ToList();
+
             // Assert
-            Assert.That(exists, Is.False);
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(4));
+            // Kiểm tra sắp xếp giảm dần theo tên
+            for (int i = 0; i < list.Count - 1; i++)
+            {
+                Assert.That(string.Compare(list[i].CategoryName, list[i + 1].CategoryName), Is.GreaterThanOrEqualTo(0));
+            }
         }
 
         [Test]
-        public async Task CreateAsync_ValidCategory_AddsCategoryToContext()
+        public async Task GetAllAsync_WithPagination_ReturnsCorrectPage()
+        {
+            // Arrange
+            int pageNumber = 2;
+            int pageSize = 2;
+
+            // Act
+            var result = await _repository.GetAllAsync(pageNumber, pageSize);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(2)); // Trang 2 với kích thước 2 sẽ có 2 mục
+        }
+
+        [Test]
+        public async Task NameExistsAsync_WithExistingName_ReturnsTrue()
+        {
+            // Arrange
+            string existingName = "Fiction";
+
+            // Act
+            var result = await _repository.NameExistsAsync(existingName);
+
+            // Assert
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public async Task NameExistsAsync_WithNonExistentName_ReturnsFalse()
+        {
+            // Arrange
+            string nonExistentName = "NonExistentCategory";
+
+            // Act
+            var result = await _repository.NameExistsAsync(nonExistentName);
+
+            // Assert
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task CreateAsync_ValidCategory_AddsToDatabase()
         {
             // Arrange
             var newCategory = new Category
             {
                 CategoryId = Guid.NewGuid(),
-                CategoryName = "New Test Category",
-                Description = "New Test Category Description"
+                CategoryName = "New Category",
+                Description = "New category description",
+                CreatedDate = DateTime.UtcNow
             };
-            
+
             // Act
-            var result = await _categoryRepository.CreateAsync(newCategory);
-            await DbContext.SaveChangesAsync();
-            
+            var result = await _repository.CreateAsync(newCategory);
+            await _context.SaveChangesAsync();
+
             // Assert
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.CategoryId, Is.EqualTo(newCategory.CategoryId));
-            
-            // Verify category was added to context
-            var addedCategory = await DbContext.Categories.FindAsync(newCategory.CategoryId);
-            Assert.That(addedCategory, Is.Not.Null);
-            Assert.That(addedCategory.CategoryName, Is.EqualTo("New Test Category"));
+            var savedCategory = await _context.Categories.FindAsync(newCategory.CategoryId);
+            Assert.That(savedCategory, Is.Not.Null);
+            Assert.That(savedCategory.CategoryName, Is.EqualTo("New Category"));
         }
 
         [Test]
-        public async Task UpdateAsync_ExistingCategory_UpdatesCategoryInContext()
+        public async Task UpdateAsync_ExistingCategory_UpdatesInDatabase()
         {
             // Arrange
-            var existingCategory = await DbContext.Categories.FirstAsync();
-            existingCategory.CategoryName = "Updated Category Name";
-            existingCategory.Description = "Updated Category Description";
-            
-            // Act
-            await _categoryRepository.UpdateAsync(existingCategory);
-            await DbContext.SaveChangesAsync();
-            
-            // Assert - Reload from database to verify changes
-            DbContext.Entry(existingCategory).Reload();
-            Assert.That(existingCategory.CategoryName, Is.EqualTo("Updated Category Name"));
-            Assert.That(existingCategory.Description, Is.EqualTo("Updated Category Description"));
-        }
+            var category = await _context.Categories.FirstAsync();
+            var originalName = category.CategoryName;
+            category.CategoryName = "Updated Category";
+            category.Description = "Updated description";
 
-        [Test]
-        public async Task DeleteAsync_ExistingCategory_RemovesCategoryFromContext()
-        {
-            // Arrange
-            var existingCategory = await DbContext.Categories.FirstAsync();
-            var categoryId = existingCategory.CategoryId;
-            
             // Act
-            await _categoryRepository.DeleteAsync(categoryId);
-            await DbContext.SaveChangesAsync();
-            
+            await _repository.UpdateAsync(category);
+            await _context.SaveChangesAsync();
+
             // Assert
-            var deletedCategory = await DbContext.Categories.FindAsync(categoryId);
+            var updatedCategory = await _context.Categories.FindAsync(category.CategoryId);
+            Assert.That(updatedCategory, Is.Not.Null);
+            Assert.That(updatedCategory.CategoryName, Is.EqualTo("Updated Category"));
+            Assert.That(updatedCategory.CategoryName, Is.Not.EqualTo(originalName));
+        }
+
+        [Test]
+        public async Task DeleteAsync_ExistingCategory_RemovesFromDatabase()
+        {
+            // Arrange
+            var categoryId = _context.Categories.First().CategoryId;
+
+            // Act
+            await _repository.DeleteAsync(categoryId);
+            await _context.SaveChangesAsync();
+
+            // Assert
+            var deletedCategory = await _context.Categories.FindAsync(categoryId);
             Assert.That(deletedCategory, Is.Null);
         }
 
@@ -221,10 +262,23 @@ namespace LibraryManagementSystem.IntegrationTests.Repositories
         public async Task CountAsync_ReturnsCorrectCount()
         {
             // Act
-            var count = await _categoryRepository.CountAsync();
-            
+            var result = await _repository.CountAsync();
+
             // Assert
-            Assert.That(count, Is.EqualTo(3));
+            Assert.That(result, Is.EqualTo(4));
+        }
+
+        [Test]
+        public async Task CountAsync_WithSearchTerm_ReturnsFilteredCount()
+        {
+            // Arrange
+            string searchTerm = "science";
+
+            // Act
+            var result = await _repository.CountAsync(searchTerm);
+
+            // Assert
+            Assert.That(result, Is.EqualTo(1));
         }
     }
-} 
+}

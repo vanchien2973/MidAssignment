@@ -20,9 +20,28 @@ public class UserActivityLogRepository : IUserActivityLogRepository
         return log;
     }
     
+    public async Task<IEnumerable<UserActivityLog>> GetUserActivitiesAsync(int userId, int pageNumber, int pageSize)
+    {
+        return await _context.UserActivityLogs
+            .Where(l => l.UserId == userId)
+            .OrderByDescending(l => l.ActivityDate)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
+    
+    public async Task<IEnumerable<UserActivityLog>> GetRecentActivitiesAsync(int pageNumber, int pageSize)
+    {
+        return await _context.UserActivityLogs
+            .OrderByDescending(l => l.ActivityDate)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
+    
     public async Task<IEnumerable<UserActivityLog>> GetUserActivityLogsAsync(
         int userId, 
-        string activityType = null,
+        string? activityType = null,
         int pageNumber = 1,
         int pageSize = 10)
     {

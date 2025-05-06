@@ -2,6 +2,7 @@
 <project version="4">
   <component name="UserContentModel">
     <attachedFolders>
+      <Path>../../../../Test</Path>
       <Path>../../server</Path>
     </attachedFolders>
     <explicitIncludes />

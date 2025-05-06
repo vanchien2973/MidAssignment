@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using LibraryManagementSystem.Domain.Entities;
 using LibraryManagementSystem.Domain.Enums;
-using NUnit.Framework;
 
 namespace LibraryManagementSystem.UnitTests.Domain.Entities
 {
@@ -14,33 +11,33 @@ namespace LibraryManagementSystem.UnitTests.Domain.Entities
         {
             // Arrange
             var requestId = Guid.NewGuid();
-            var userId = Guid.NewGuid();
+            var requestorId = 1;
             var requestDate = DateTime.UtcNow;
-            var status = RequestStatus.Pending;
+            var status = BorrowingRequestStatus.Waiting;
             var notes = "Test borrowing request";
-            var processedDate = DateTime.UtcNow.AddHours(2);
-            var processedByUserId = Guid.NewGuid();
+            var approvalDate = DateTime.UtcNow.AddHours(2);
+            var approverId = 2;
 
             // Act
             var request = new BookBorrowingRequest
             {
                 RequestId = requestId,
-                UserId = userId,
+                RequestorId = requestorId,
                 RequestDate = requestDate,
                 Status = status,
                 Notes = notes,
-                ProcessedDate = processedDate,
-                ProcessedByUserId = processedByUserId
+                ApprovalDate = approvalDate,
+                ApproverId = approverId
             };
 
             // Assert
             Assert.That(request.RequestId, Is.EqualTo(requestId));
-            Assert.That(request.UserId, Is.EqualTo(userId));
-            Assert.That(request.RequestDate, Is.EqualTo(requestDate));
+            Assert.That(request.RequestorId, Is.EqualTo(requestorId));
+            Assert.That(request.RequestDate, Is.EqualTo(requestDate).Within(TimeSpan.FromSeconds(1)));
             Assert.That(request.Status, Is.EqualTo(status));
             Assert.That(request.Notes, Is.EqualTo(notes));
-            Assert.That(request.ProcessedDate, Is.EqualTo(processedDate));
-            Assert.That(request.ProcessedByUserId, Is.EqualTo(processedByUserId));
+            Assert.That(request.ApprovalDate, Is.EqualTo(approvalDate).Within(TimeSpan.FromSeconds(1)));
+            Assert.That(request.ApproverId, Is.EqualTo(approverId));
         }
 
         [Test]
@@ -50,9 +47,9 @@ namespace LibraryManagementSystem.UnitTests.Domain.Entities
             var request = new BookBorrowingRequest();
 
             // Assert
-            Assert.That(request.User, Is.Null);
-            Assert.That(request.ProcessedByUser, Is.Null);
-            Assert.That(request.Details, Is.Null);
+            Assert.That(request.Requestor, Is.Null);
+            Assert.That(request.Approver, Is.Null);
+            Assert.That(request.RequestDetails, Is.Null);
         }
 
         [Test]
@@ -63,11 +60,11 @@ namespace LibraryManagementSystem.UnitTests.Domain.Entities
 
             // Assert
             Assert.That(request.RequestId, Is.EqualTo(Guid.Empty));
-            Assert.That(request.UserId, Is.EqualTo(Guid.Empty));
-            Assert.That(request.Status, Is.EqualTo(RequestStatus.Pending)); // Default enum value
+            Assert.That(request.RequestorId, Is.EqualTo(0));
+            Assert.That(request.Status, Is.EqualTo(default(BorrowingRequestStatus)));
             Assert.That(request.Notes, Is.Null);
-            Assert.That(request.ProcessedDate, Is.Null);
-            Assert.That(request.ProcessedByUserId, Is.Null);
+            Assert.That(request.ApprovalDate, Is.Null);
+            Assert.That(request.ApproverId, Is.Null);
         }
 
         [Test]
@@ -77,17 +74,14 @@ namespace LibraryManagementSystem.UnitTests.Domain.Entities
             var request = new BookBorrowingRequest();
 
             // Act & Assert
-            request.Status = RequestStatus.Pending;
-            Assert.That(request.Status, Is.EqualTo(RequestStatus.Pending));
+            request.Status = BorrowingRequestStatus.Waiting;
+            Assert.That(request.Status, Is.EqualTo(BorrowingRequestStatus.Waiting));
 
-            request.Status = RequestStatus.Approved;
-            Assert.That(request.Status, Is.EqualTo(RequestStatus.Approved));
+            request.Status = BorrowingRequestStatus.Approved;
+            Assert.That(request.Status, Is.EqualTo(BorrowingRequestStatus.Approved));
 
-            request.Status = RequestStatus.Rejected;
-            Assert.That(request.Status, Is.EqualTo(RequestStatus.Rejected));
-
-            request.Status = RequestStatus.Completed;
-            Assert.That(request.Status, Is.EqualTo(RequestStatus.Completed));
+            request.Status = BorrowingRequestStatus.Rejected;
+            Assert.That(request.Status, Is.EqualTo(BorrowingRequestStatus.Rejected));
         }
 
         [Test]
@@ -97,9 +91,9 @@ namespace LibraryManagementSystem.UnitTests.Domain.Entities
             var request = new BookBorrowingRequest
             {
                 RequestId = Guid.NewGuid(),
-                UserId = Guid.NewGuid(),
+                RequestorId = 1,
                 RequestDate = DateTime.UtcNow,
-                Status = RequestStatus.Pending
+                Status = BorrowingRequestStatus.Waiting
             };
 
             var details = new List<BookBorrowingRequestDetail>
@@ -109,24 +103,126 @@ namespace LibraryManagementSystem.UnitTests.Domain.Entities
                     DetailId = Guid.NewGuid(),
                     RequestId = request.RequestId,
                     BookId = Guid.NewGuid(),
-                    Status = BookStatus.Borrowed
+                    Status = BorrowingDetailStatus.Borrowing
                 },
                 new BookBorrowingRequestDetail
                 {
                     DetailId = Guid.NewGuid(),
                     RequestId = request.RequestId,
                     BookId = Guid.NewGuid(),
-                    Status = BookStatus.Borrowed
+                    Status = BorrowingDetailStatus.Borrowing
                 }
             };
 
             // Act
-            request.Details = details;
+            request.RequestDetails = details;
 
             // Assert
-            Assert.That(request.Details, Is.Not.Null);
-            Assert.That(request.Details.Count, Is.EqualTo(2));
-            Assert.That(request.Details, Is.EquivalentTo(details));
+            Assert.That(request.RequestDetails, Is.Not.Null);
+            Assert.That(request.RequestDetails.Count, Is.EqualTo(2));
+            Assert.That(request.RequestDetails, Is.EquivalentTo(details));
+        }
+
+        [Test]
+        public void BookBorrowingRequest_PropertiesInitialization_PropertiesHaveCorrectDefaultValues()
+        {
+            // Arrange & Act
+            var borrowingRequest = new BookBorrowingRequest();
+            
+            // Assert
+            Assert.That(borrowingRequest.RequestId, Is.EqualTo(Guid.Empty));
+            Assert.That(borrowingRequest.RequestorId, Is.EqualTo(0));
+            Assert.That(borrowingRequest.RequestDate, Is.EqualTo(default(DateTime)));
+            Assert.That(borrowingRequest.Status, Is.EqualTo(default(BorrowingRequestStatus)));
+            Assert.That(borrowingRequest.ApproverId, Is.Null);
+            Assert.That(borrowingRequest.ApprovalDate, Is.Null);
+            Assert.That(borrowingRequest.Notes, Is.Null);
+        }
+        
+        [Test]
+        public void BookBorrowingRequest_SetProperties_PropertiesAreSetCorrectly()
+        {
+            // Arrange
+            var borrowingRequest = new BookBorrowingRequest();
+            var requestId = Guid.NewGuid();
+            var requestorId = 1;
+            var requestDate = DateTime.UtcNow.AddDays(-1);
+            var status = BorrowingRequestStatus.Approved;
+            var approverId = 2;
+            var approvalDate = DateTime.UtcNow;
+            var notes = "Approved for 14 days";
+            
+            // Act
+            borrowingRequest.RequestId = requestId;
+            borrowingRequest.RequestorId = requestorId;
+            borrowingRequest.RequestDate = requestDate;
+            borrowingRequest.Status = status;
+            borrowingRequest.ApproverId = approverId;
+            borrowingRequest.ApprovalDate = approvalDate;
+            borrowingRequest.Notes = notes;
+            
+            // Assert
+            Assert.That(borrowingRequest.RequestId, Is.EqualTo(requestId));
+            Assert.That(borrowingRequest.RequestorId, Is.EqualTo(requestorId));
+            Assert.That(borrowingRequest.RequestDate, Is.EqualTo(requestDate).Within(TimeSpan.FromSeconds(1)));
+            Assert.That(borrowingRequest.Status, Is.EqualTo(status));
+            Assert.That(borrowingRequest.ApproverId, Is.EqualTo(approverId));
+            Assert.That(borrowingRequest.ApprovalDate, Is.EqualTo(approvalDate).Within(TimeSpan.FromSeconds(1)));
+            Assert.That(borrowingRequest.Notes, Is.EqualTo(notes));
+        }
+        
+        [Test]
+        public void BookBorrowingRequest_NavigationProperties_InitializedAsNull()
+        {
+            // Arrange & Act
+            var borrowingRequest = new BookBorrowingRequest();
+            
+            // Assert
+            Assert.That(borrowingRequest.Requestor, Is.Null);
+            Assert.That(borrowingRequest.Approver, Is.Null);
+            Assert.That(borrowingRequest.RequestDetails, Is.Null);
+        }
+        
+        [Test]
+        public void BookBorrowingRequest_SetNavigationProperties_PropertiesAreSetCorrectly()
+        {
+            // Arrange
+            var borrowingRequest = new BookBorrowingRequest();
+            var requestor = new User { UserId = 1, Username = "requestor" };
+            var approver = new User { UserId = 2, Username = "approver" };
+            var requestDetails = new List<BookBorrowingRequestDetail>
+            {
+                new BookBorrowingRequestDetail { DetailId = Guid.NewGuid(), RequestId = borrowingRequest.RequestId },
+                new BookBorrowingRequestDetail { DetailId = Guid.NewGuid(), RequestId = borrowingRequest.RequestId }
+            };
+            
+            // Act
+            borrowingRequest.Requestor = requestor;
+            borrowingRequest.Approver = approver;
+            borrowingRequest.RequestDetails = requestDetails;
+
+            // Assert
+            Assert.That(borrowingRequest.Requestor, Is.SameAs(requestor));
+            Assert.That(borrowingRequest.Approver, Is.SameAs(approver));
+            Assert.That(borrowingRequest.RequestDetails, Is.SameAs(requestDetails));
+            Assert.That(borrowingRequest.RequestDetails.Count, Is.EqualTo(2));
+        }
+        
+        [Test]
+        public void BookBorrowingRequest_EnumValues_CorrectEnumValuesAreUsed()
+        {
+            // Arrange
+            var borrowingRequest = new BookBorrowingRequest();
+            
+            // Act & Assert
+            borrowingRequest.Status = BorrowingRequestStatus.Waiting;
+            Assert.That(borrowingRequest.Status, Is.EqualTo(BorrowingRequestStatus.Waiting));
+            
+            borrowingRequest.Status = BorrowingRequestStatus.Approved;
+            Assert.That(borrowingRequest.Status, Is.EqualTo(BorrowingRequestStatus.Approved));
+            
+            borrowingRequest.Status = BorrowingRequestStatus.Rejected;
+            Assert.That(borrowingRequest.Status, Is.EqualTo(BorrowingRequestStatus.Rejected));
         }
     }
 } 

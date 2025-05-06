@@ -5514,11 +5514,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/WebAPI/WebAPI.csproj",
+      "projectUniqueName": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/WebAPI/WebAPI.csproj",
       "projectName": "WebAPI",
-      "projectPath": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/WebAPI/WebAPI.csproj",
+      "projectPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/WebAPI/WebAPI.csproj",
       "packagesPath": "/Users/vanchienn_/.nuget/packages/",
-      "outputPath": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/WebAPI/obj/",
+      "outputPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/WebAPI/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/vanchienn_/.nuget/NuGet/NuGet.Config"
@@ -5533,8 +5533,8 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "projectReferences": {
-            "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Infrastructure.Data/LibraryManagementSystem.Infrastructure.Data.csproj": {
-              "projectPath": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Infrastructure.Data/LibraryManagementSystem.Infrastructure.Data.csproj"
+            "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Infrastructure.Data/LibraryManagementSystem.Infrastructure.Data.csproj": {
+              "projectPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Infrastructure.Data/LibraryManagementSystem.Infrastructure.Data.csproj"
             }
           }
         }

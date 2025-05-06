@@ -1,13 +1,13 @@
-using System;
-using NUnit.Framework;
+using LibraryManagementSystem.Application.Interfaces.Services;
 using LibraryManagementSystem.Application.Services;
+using NUnit.Framework;
 
 namespace LibraryManagementSystem.IntegrationTests.Services
 {
     [TestFixture]
     public class PasswordHashServiceTests
     {
-        private PasswordHashService _passwordHashService;
+        private IPasswordHashService _passwordHashService;
 
         [SetUp]
         public void Setup()
@@ -16,29 +16,102 @@ namespace LibraryManagementSystem.IntegrationTests.Services
         }
 
         [Test]
-        public void HashPassword_ValidPassword_ReturnsHashedPassword()
+        public void HashPassword_ReturnsHashedString()
         {
             // Arrange
-            string password = "Password123!";
+            var password = "TestPassword123";
 
             // Act
-            string hashedPassword = _passwordHashService.HashPassword(password);
+            var hashedPassword = _passwordHashService.HashPassword(password);
 
             // Assert
             Assert.That(hashedPassword, Is.Not.Null);
             Assert.That(hashedPassword, Is.Not.Empty);
-            Assert.That(hashedPassword, Is.Not.EqualTo(password));
-            Assert.That(hashedPassword.Length, Is.EqualTo(64)); 
+            Assert.That(hashedPassword, Is.Not.EqualTo(password)); // Hash should not be the original password
+            Assert.That(hashedPassword.Length, Is.EqualTo(64)); // SHA-256 produces a 64-character hex string
         }
 
         [Test]
-        public void HashPassword_EmptyPassword_ReturnsHash()
+        public void HashPassword_WithSameInput_ReturnsSameHash()
         {
             // Arrange
-            string password = "";
+            var password = "TestPassword123";
 
             // Act
-            string hashedPassword = _passwordHashService.HashPassword(password);
+            var hashedPassword1 = _passwordHashService.HashPassword(password);
+            var hashedPassword2 = _passwordHashService.HashPassword(password);
+
+            // Assert
+            Assert.That(hashedPassword1, Is.EqualTo(hashedPassword2));
+        }
+
+        [Test]
+        public void HashPassword_WithDifferentInputs_ReturnsDifferentHashes()
+        {
+            // Arrange
+            var password1 = "TestPassword123";
+            var password2 = "TestPassword124"; // Just one character different
+
+            // Act
+            var hashedPassword1 = _passwordHashService.HashPassword(password1);
+            var hashedPassword2 = _passwordHashService.HashPassword(password2);
+
+            // Assert
+            Assert.That(hashedPassword1, Is.Not.EqualTo(hashedPassword2));
+        }
+
+        [Test]
+        public void VerifyPassword_WithCorrectPassword_ReturnsTrue()
+        {
+            // Arrange
+            var password = "TestPassword123";
+            var hashedPassword = _passwordHashService.HashPassword(password);
+
+            // Act
+            var result = _passwordHashService.VerifyPassword(password, hashedPassword);
+
+            // Assert
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public void VerifyPassword_WithIncorrectPassword_ReturnsFalse()
+        {
+            // Arrange
+            var password = "TestPassword123";
+            var incorrectPassword = "TestPassword124";
+            var hashedPassword = _passwordHashService.HashPassword(password);
+
+            // Act
+            var result = _passwordHashService.VerifyPassword(incorrectPassword, hashedPassword);
+
+            // Assert
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public void VerifyPassword_CaseInsensitiveHashComparison()
+        {
+            // Arrange
+            var password = "TestPassword123";
+            var hashedPassword = _passwordHashService.HashPassword(password);
+            var uppercaseHash = hashedPassword.ToUpper();
+
+            // Act
+            var result = _passwordHashService.VerifyPassword(password, uppercaseHash);
+
+            // Assert
+            Assert.That(result, Is.True, "Hash comparison should be case-insensitive");
+        }
+
+        [Test]
+        public void HashPassword_WithEmptyString_ReturnsValidHash()
+        {
+            // Arrange
+            var password = string.Empty;
+
+            // Act
+            var hashedPassword = _passwordHashService.HashPassword(password);
 
             // Assert
             Assert.That(hashedPassword, Is.Not.Null);
@@ -47,76 +120,10 @@ namespace LibraryManagementSystem.IntegrationTests.Services
         }
 
         [Test]
-        public void HashPassword_SamePasswordTwice_ReturnsSameHash()
+        public void HashPassword_WithNull_ThrowsArgumentNullException()
         {
-            // Arrange
-            string password = "SecurePassword456!";
-
-            // Act
-            string hashedPassword1 = _passwordHashService.HashPassword(password);
-            string hashedPassword2 = _passwordHashService.HashPassword(password);
-
-            // Assert
-            Assert.That(hashedPassword1, Is.EqualTo(hashedPassword2));
-        }
-
-        [Test]
-        public void HashPassword_DifferentPasswords_ReturnsDifferentHashes()
-        {
-            // Arrange
-            string password1 = "Password123!";
-            string password2 = "Password123";
-
-            // Act
-            string hashedPassword1 = _passwordHashService.HashPassword(password1);
-            string hashedPassword2 = _passwordHashService.HashPassword(password2);
-
-            // Assert
-            Assert.That(hashedPassword1, Is.Not.EqualTo(hashedPassword2));
-        }
-
-        [Test]
-        public void VerifyPassword_CorrectPassword_ReturnsTrue()
-        {
-            // Arrange
-            string password = "Password123!";
-            string hashedPassword = _passwordHashService.HashPassword(password);
-
-            // Act
-            bool result = _passwordHashService.VerifyPassword(password, hashedPassword);
-
-            // Assert
-            Assert.That(result, Is.True);
-        }
-
-        [Test]
-        public void VerifyPassword_IncorrectPassword_ReturnsFalse()
-        {
-            // Arrange
-            string correctPassword = "Password123!";
-            string incorrectPassword = "Password123";
-            string hashedPassword = _passwordHashService.HashPassword(correctPassword);
-
-            // Act
-            bool result = _passwordHashService.VerifyPassword(incorrectPassword, hashedPassword);
-
-            // Assert
-            Assert.That(result, Is.False);
-        }
-
-        [Test]
-        public void VerifyPassword_CaseSensitivity_ReturnsFalse()
-        {
-            // Arrange
-            string correctPassword = "Password123!";
-            string wrongCasePassword = "password123!";
-            string hashedPassword = _passwordHashService.HashPassword(correctPassword);
-
-            // Act
-            bool result = _passwordHashService.VerifyPassword(wrongCasePassword, hashedPassword);
-
-            // Assert
-            Assert.That(result, Is.False);
+            // Act & Assert
+            Assert.Throws<System.ArgumentNullException>(() => _passwordHashService.HashPassword(null));
         }
     }
-} 
+}

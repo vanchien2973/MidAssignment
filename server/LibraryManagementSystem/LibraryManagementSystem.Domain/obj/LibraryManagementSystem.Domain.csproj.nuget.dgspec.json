@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj": {}
+    "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj": {}
   },
   "projects": {
-    "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj": {
+    "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj",
+        "projectUniqueName": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj",
         "projectName": "LibraryManagementSystem.Domain",
-        "projectPath": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj",
+        "projectPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj",
         "packagesPath": "/Users/vanchienn_/.nuget/packages/",
-        "outputPath": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/obj/",
+        "outputPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/vanchienn_/.nuget/NuGet/NuGet.Config"

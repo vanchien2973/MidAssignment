@@ -15,6 +15,7 @@ import { BooksPage } from "../pages/admin/books/BooksPage";
 // Lazy load các trang
 const LoginPage = lazy(() => import("../pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("../pages/auth/RegisterPage"));
+const PendingActivationPage = lazy(() => import("../pages/auth/PendingActivationPage"));
 const ProfilePage = lazy(() => import("../pages/user/ProfilePage"));
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 
@@ -44,6 +45,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingFallback />}>
             <RegisterPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "pending-activation",
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <PendingActivationPage />
           </Suspense>
         ),
       },

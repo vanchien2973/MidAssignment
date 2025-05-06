@@ -11,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { EyeIcon, EyeOffIcon, AlertCircle } from "lucide-react";
 import { RegisterRequest } from "../../types/auth";
 
-// Định nghĩa schema xác thực với Yup
 const RegisterSchema = Yup.object().shape({
   username: Yup.string()
     .min(3, "Username must be at least 3 characters long")
@@ -40,7 +39,7 @@ const RegisterSchema = Yup.object().shape({
     .required("Please confirm your password"),
 });
 
-// Giá trị khởi tạo
+
 const initialValues: RegisterRequest = {
   username: "",
   email: "",
@@ -89,10 +88,9 @@ const RegisterForm = () => {
       } else {
         toast({
           title: "Success",
-          description: "Account registered successfully",
+          description: "Account registered successfully and is pending activation.",
         });
-        // Only navigate on success
-        navigate("/login");
+        navigate("/pending-activation");
       }
     } catch (error: unknown) {
       const errorMessage = "An unexpected error occurred. Please try again later.";

@@ -1,17 +1,106 @@
 {
   "format": 1,
   "restore": {
-    "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.UnitTests/LibraryManagementSystem.UnitTests.csproj": {}
+    "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.UnitTests/LibraryManagementSystem.UnitTests.csproj": {}
   },
   "projects": {
-    "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.UnitTests/LibraryManagementSystem.UnitTests.csproj": {
+    "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Application/LibraryManagementSystem.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.UnitTests/LibraryManagementSystem.UnitTests.csproj",
-        "projectName": "LibraryManagementSystem.UnitTests",
-        "projectPath": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.UnitTests/LibraryManagementSystem.UnitTests.csproj",
+        "projectUniqueName": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Application/LibraryManagementSystem.Application.csproj",
+        "projectName": "LibraryManagementSystem.Application",
+        "projectPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Application/LibraryManagementSystem.Application.csproj",
         "packagesPath": "/Users/vanchienn_/.nuget/packages/",
-        "outputPath": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.UnitTests/obj/",
+        "outputPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Application/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/vanchienn_/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {
+              "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj": {
+                "projectPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.100"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "dependencies": {
+            "FluentValidation.AspNetCore": {
+              "target": "Package",
+              "version": "[11.3.0, )"
+            },
+            "MediatR": {
+              "target": "Package",
+              "version": "[12.2.0, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "Microsoft.Extensions.DependencyInjection.Abstractions": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "Microsoft.Extensions.Logging.Abstractions": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "System.IdentityModel.Tokens.Jwt": {
+              "target": "Package",
+              "version": "[8.9.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.101/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj",
+        "projectName": "LibraryManagementSystem.Domain",
+        "projectPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj",
+        "packagesPath": "/Users/vanchienn_/.nuget/packages/",
+        "outputPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/vanchienn_/.nuget/NuGet/NuGet.Config"
@@ -43,10 +132,80 @@
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.101/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.UnitTests/LibraryManagementSystem.UnitTests.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.UnitTests/LibraryManagementSystem.UnitTests.csproj",
+        "projectName": "LibraryManagementSystem.UnitTests",
+        "projectPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.UnitTests/LibraryManagementSystem.UnitTests.csproj",
+        "packagesPath": "/Users/vanchienn_/.nuget/packages/",
+        "outputPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.UnitTests/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/vanchienn_/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {
+              "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Application/LibraryManagementSystem.Application.csproj": {
+                "projectPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Application/LibraryManagementSystem.Application.csproj"
+              },
+              "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj": {
+                "projectPath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.100"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
           "dependencies": {
             "Microsoft.NET.Test.Sdk": {
               "target": "Package",
               "version": "[17.11.1, )"
+            },
+            "Moq": {
+              "target": "Package",
+              "version": "[4.20.70, )"
             },
             "NUnit": {
               "target": "Package",

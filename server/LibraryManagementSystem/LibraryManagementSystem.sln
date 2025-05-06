@@ -6,7 +6,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibraryManagementSystem.Uni
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibraryManagementSystem.IntegrationTests", "LibraryManagementSystem.IntegrationTests\LibraryManagementSystem.IntegrationTests.csproj", "{3968F4C1-9F2F-466D-953A-D3E97F6790E8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibraryManagementSystem.FuntionalTests", "LibraryManagementSystem.FuntionalTests\LibraryManagementSystem.FuntionalTests.csproj", "{36C59BAC-FFA8-47BE-904B-F38E181DC9BF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibraryManagementSystem.FunctionalTests", "LibraryManagementSystem.FunctionalTests\LibraryManagementSystem.FunctionalTests.csproj", "{36C59BAC-FFA8-47BE-904B-F38E181DC9BF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebAPI", "WebAPI\WebAPI.csproj", "{7686AA7E-939F-45C3-B79D-97545DE51ABC}"
 EndProject

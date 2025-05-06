@@ -1,374 +1,348 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using LibraryManagementSystem.Domain.Entities;
 using LibraryManagementSystem.Domain.Enums;
+using LibraryManagementSystem.Infrastructure.Data.Context;
 using LibraryManagementSystem.Infrastructure.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace LibraryManagementSystem.IntegrationTests.Repositories
 {
-    public class BookBorrowingRequestRepositoryTests : TestBase
+    [TestFixture]
+    public class BookBorrowingRequestRepositoryTests
     {
-        private BookBorrowingRequestRepository _borrowingRequestRepository;
-        private BookBorrowingRequestDetailRepository _borrowingRequestDetailRepository;
-        private Guid _userId;
-        private Guid _bookId;
+        private DbContextOptions<LibraryDbContext> _options;
+        private LibraryDbContext _context;
+        private BookBorrowingRequestRepository _repository;
 
-        public override async Task Setup()
+        [SetUp]
+        public void Setup()
         {
-            await base.Setup();
-            _borrowingRequestRepository = new BookBorrowingRequestRepository(DbContext);
-            _borrowingRequestDetailRepository = new BookBorrowingRequestDetailRepository(DbContext);
+            _options = new DbContextOptionsBuilder<LibraryDbContext>()
+                .UseInMemoryDatabase(databaseName: $"LibraryTestDb_{Guid.NewGuid()}")
+                .Options;
+
+            _context = new LibraryDbContext(_options);
+            _repository = new BookBorrowingRequestRepository(_context);
+
+            SeedDatabase();
         }
 
-        protected override async Task SeedDataAsync()
+        [TearDown]
+        public void TearDown()
         {
-            // Create a test category
+            if (_repository is IDisposable disposableRepository)
+            {
+                disposableRepository.Dispose();
+            }
+            _context?.Database.EnsureDeleted();
+            _context?.Dispose();
+        }
+
+        private void SeedDatabase()
+        {
             var category = new Category
             {
                 CategoryId = Guid.NewGuid(),
-                CategoryName = "Test Category",
-                Description = "Test Category Description"
+                CategoryName = "Fiction",
+                Description = "Fiction books"
             };
-            
-            await DbContext.Categories.AddAsync(category);
+            _context.Categories.Add(category);
 
-            // Create test books
-            var book = new Book
+            var book1 = new Book
             {
                 BookId = Guid.NewGuid(),
-                Title = "Test Book",
-                Author = "Test Author",
-                ISBN = "123-456-789-0",
-                PublishedYear = 2020,
+                Title = "Book 1",
+                Author = "Author 1",
                 CategoryId = category.CategoryId,
-                TotalCopies = 10,
-                AvailableCopies = 5,
+                ISBN = "123456789",
+                PublishedYear = 2020,
+                TotalCopies = 5,
+                AvailableCopies = 3,
+                Publisher = "Publisher 1",
+                Description = "Description of Book 1",
                 IsActive = true
             };
-            
-            _bookId = book.BookId;
-            await DbContext.Books.AddAsync(book);
 
-            // Create test users
-            var user = new User
+            var book2 = new Book
             {
-                UserId = Guid.NewGuid(),
-                UserName = "testuser",
-                PasswordHash = "hashed_password",
-                Email = "test@example.com",
-                FullName = "Test User",
-                Role = UserRole.Member,
+                BookId = Guid.NewGuid(),
+                Title = "Book 2",
+                Author = "Author 2",
+                CategoryId = category.CategoryId,
+                ISBN = "987654321",
+                PublishedYear = 2021,
+                TotalCopies = 3,
+                AvailableCopies = 1,
+                Publisher = "Publisher 2",
+                Description = "Description of Book 2",
                 IsActive = true
             };
-            
-            _userId = user.UserId;
-            await DbContext.Users.AddAsync(user);
+            _context.Books.AddRange(book1, book2);
 
-            // Create test borrowing requests with details
-            var requests = new[]
+            var user1 = new User
             {
-                new BookBorrowingRequest
-                {
-                    RequestId = Guid.NewGuid(),
-                    UserId = user.UserId,
-                    RequestDate = DateTime.UtcNow.AddDays(-10),
-                    Status = RequestStatus.Approved,
-                    ProcessedDate = DateTime.UtcNow.AddDays(-9),
-                    ProcessedByUserId = user.UserId
-                },
-                new BookBorrowingRequest
-                {
-                    RequestId = Guid.NewGuid(),
-                    UserId = user.UserId,
-                    RequestDate = DateTime.UtcNow.AddDays(-5),
-                    Status = RequestStatus.Pending,
-                    ProcessedDate = null,
-                    ProcessedByUserId = null
-                },
-                new BookBorrowingRequest
-                {
-                    RequestId = Guid.NewGuid(),
-                    UserId = user.UserId,
-                    RequestDate = DateTime.UtcNow.AddDays(-3),
-                    Status = RequestStatus.Rejected,
-                    ProcessedDate = DateTime.UtcNow.AddDays(-2),
-                    ProcessedByUserId = user.UserId
-                }
+                UserId = 1,
+                Username = "user1",
+                FullName = "User One",
+                Email = "user1@example.com",
+                Password = "hashed_password",
+                IsActive = true
             };
-            
-            await DbContext.BookBorrowingRequests.AddRangeAsync(requests);
-            await DbContext.SaveChangesAsync();
 
-            // Add details to the first request
-            var details = new BookBorrowingRequestDetail
+            var user2 = new User
+            {
+                UserId = 2,
+                Username = "user2",
+                FullName = "User Two",
+                Email = "user2@example.com",
+                Password = "hashed_password",
+                IsActive = true
+            };
+            _context.Users.AddRange(user1, user2);
+
+            // Tạo các đơn mượn sách với các trạng thái khác nhau
+            var request1 = new BookBorrowingRequest
+            {
+                RequestId = Guid.NewGuid(),
+                RequestorId = user1.UserId,
+                RequestDate = DateTime.UtcNow.AddDays(-10),
+                Status = BorrowingRequestStatus.Approved,
+                ApproverId = user2.UserId,
+                ApprovalDate = DateTime.UtcNow.AddDays(-9),
+                Notes = "Approved request"
+            };
+
+            var request2 = new BookBorrowingRequest
+            {
+                RequestId = Guid.NewGuid(),
+                RequestorId = user1.UserId,
+                RequestDate = DateTime.UtcNow.AddDays(-5),
+                Status = BorrowingRequestStatus.Waiting,
+                Notes = "Waiting for approval"
+            };
+
+            var request3 = new BookBorrowingRequest
+            {
+                RequestId = Guid.NewGuid(),
+                RequestorId = user2.UserId,
+                RequestDate = DateTime.UtcNow.AddDays(-3),
+                Status = BorrowingRequestStatus.Rejected,
+                ApproverId = user1.UserId,
+                ApprovalDate = DateTime.UtcNow.AddDays(-2),
+                Notes = "Rejected request"
+            };
+            _context.BookBorrowingRequests.AddRange(request1, request2, request3);
+
+            // Tạo chi tiết đơn mượn
+            var detail1 = new BookBorrowingRequestDetail
             {
                 DetailId = Guid.NewGuid(),
-                RequestId = requests[0].RequestId,
-                BookId = book.BookId,
-                Status = BookStatus.Borrowed,
-                BorrowedDate = DateTime.UtcNow.AddDays(-9),
-                DueDate = DateTime.UtcNow.AddDays(21),
-                ReturnedDate = null
+                RequestId = request1.RequestId,
+                BookId = book1.BookId,
+                Status = BorrowingDetailStatus.Borrowing,
+                DueDate = DateTime.UtcNow.AddDays(7)
             };
-            
-            await DbContext.BookBorrowingRequestDetails.AddAsync(details);
-            await DbContext.SaveChangesAsync();
+
+            var detail2 = new BookBorrowingRequestDetail
+            {
+                DetailId = Guid.NewGuid(),
+                RequestId = request1.RequestId,
+                BookId = book2.BookId,
+                Status = BorrowingDetailStatus.Returned,
+                DueDate = DateTime.UtcNow.AddDays(7),
+                ReturnDate = DateTime.UtcNow
+            };
+
+            var detail3 = new BookBorrowingRequestDetail
+            {
+                DetailId = Guid.NewGuid(),
+                RequestId = request2.RequestId,
+                BookId = book1.BookId,
+                Status = BorrowingDetailStatus.Borrowing,
+                DueDate = null
+            };
+            _context.BookBorrowingRequestDetails.AddRange(detail1, detail2, detail3);
+
+            _context.SaveChanges();
         }
 
         [Test]
-        public async Task GetByIdAsync_ExistingRequest_ReturnsCorrectRequest()
+        public async Task GetByIdAsync_ExistingId_ReturnsRequestWithDetails()
         {
             // Arrange
-            var existingRequest = await DbContext.BookBorrowingRequests.FirstAsync();
-            
-            // Act
-            var request = await _borrowingRequestRepository.GetByIdAsync(existingRequest.RequestId);
-            
-            // Assert
-            Assert.That(request, Is.Not.Null);
-            Assert.That(request.RequestId, Is.EqualTo(existingRequest.RequestId));
-            Assert.That(request.User, Is.Not.Null);
-        }
+            var requestId = _context.BookBorrowingRequests
+                .Where(r => r.Status == BorrowingRequestStatus.Approved)
+                .First().RequestId;
 
-        [Test]
-        public async Task GetByIdAsync_NonExistingRequest_ReturnsNull()
-        {
-            // Arrange
-            var nonExistingId = Guid.NewGuid();
-            
             // Act
-            var request = await _borrowingRequestRepository.GetByIdAsync(nonExistingId);
-            
-            // Assert
-            Assert.That(request, Is.Null);
-        }
+            var result = await _repository.GetByIdAsync(requestId);
 
-        [Test]
-        public async Task GetByIdWithDetailsAsync_ExistingRequestWithDetails_ReturnsRequestWithDetails()
-        {
-            // Arrange
-            var requestWithDetails = await DbContext.BookBorrowingRequests
-                .Where(r => r.Status == RequestStatus.Approved)
-                .FirstAsync();
-            
-            // Act
-            var result = await _borrowingRequestRepository.GetByIdWithDetailsAsync(requestWithDetails.RequestId);
-            
             // Assert
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.RequestId, Is.EqualTo(requestWithDetails.RequestId));
-            Assert.That(result.Details, Is.Not.Null);
-            Assert.That(result.Details.Count, Is.EqualTo(1));
+            Assert.That(result.RequestId, Is.EqualTo(requestId));
+            Assert.That(result.Requestor, Is.Not.Null);
+            Assert.That(result.Approver, Is.Not.Null);
+            Assert.That(result.RequestDetails, Is.Not.Null);
+            Assert.That(result.RequestDetails.Count, Is.EqualTo(2));
         }
 
         [Test]
-        public async Task GetAllAsync_DefaultParameters_ReturnsPaginatedResults()
+        public async Task GetByIdAsync_NonExistentId_ReturnsNull()
+        {
+            // Arrange
+            var nonExistentId = Guid.NewGuid();
+
+            // Act
+            var result = await _repository.GetByIdAsync(nonExistentId);
+
+            // Assert
+            Assert.That(result, Is.Null);
+        }
+
+        [Test]
+        public async Task GetByUserIdAsync_ExistingUserId_ReturnsRequests()
+        {
+            // Arrange
+            int userId = 1;
+            int pageNumber = 1;
+            int pageSize = 10;
+
+            // Act
+            var result = await _repository.GetByUserIdAsync(userId, pageNumber, pageSize);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(2));
+            foreach (var request in result)
+            {
+                Assert.That(request.RequestorId, Is.EqualTo(userId));
+                Assert.That(request.Requestor, Is.Not.Null);
+                Assert.That(request.RequestDetails, Is.Not.Null);
+            }
+        }
+
+        [Test]
+        public async Task GetPendingRequestsAsync_ReturnsPendingRequests()
         {
             // Arrange
             int pageNumber = 1;
-            int pageSize = 2;
-            
+            int pageSize = 10;
+
             // Act
-            var requests = (await _borrowingRequestRepository.GetAllAsync(pageNumber, pageSize)).ToList();
-            
+            var result = await _repository.GetPendingRequestsAsync(pageNumber, pageSize);
+
             // Assert
-            Assert.That(requests, Is.Not.Null);
-            Assert.That(requests.Count, Is.EqualTo(pageSize));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(1));
+            Assert.That(result.First().Status, Is.EqualTo(BorrowingRequestStatus.Waiting));
         }
 
         [Test]
-        public async Task GetByUserIdAsync_ExistingUser_ReturnsUserRequests()
-        {
-            // Act
-            var requests = (await _borrowingRequestRepository.GetByUserIdAsync(_userId, 1, 10)).ToList();
-            
-            // Assert
-            Assert.That(requests, Is.Not.Null);
-            Assert.That(requests.Count, Is.EqualTo(3)); // All requests belong to the same user
-            Assert.That(requests.All(r => r.UserId == _userId), Is.True);
-        }
-
-        [Test]
-        public async Task GetByStatusAsync_ExistingStatus_ReturnsRequestsWithStatus()
-        {
-            // Act
-            var pendingRequests = (await _borrowingRequestRepository.GetByStatusAsync(RequestStatus.Pending, 1, 10)).ToList();
-            
-            // Assert
-            Assert.That(pendingRequests, Is.Not.Null);
-            Assert.That(pendingRequests.Count, Is.EqualTo(1));
-            Assert.That(pendingRequests.All(r => r.Status == RequestStatus.Pending), Is.True);
-        }
-
-        [Test]
-        public async Task CreateAsync_ValidRequest_AddsRequestToContext()
+        public async Task GetByStatusAsync_ReturnsRequestsWithSpecifiedStatus()
         {
             // Arrange
+            var status = BorrowingRequestStatus.Approved;
+            int pageNumber = 1;
+            int pageSize = 10;
+
+            // Act
+            var result = await _repository.GetByStatusAsync(status, pageNumber, pageSize);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(1));
+            Assert.That(result.First().Status, Is.EqualTo(status));
+        }
+
+        [Test]
+        public async Task GetAllAsync_ReturnsAllRequests()
+        {
+            // Arrange
+            int pageNumber = 1;
+            int pageSize = 10;
+
+            // Act
+            var result = await _repository.GetAllAsync(pageNumber, pageSize);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task CreateAsync_ValidRequest_AddsToDatabase()
+        {
+            // Arrange
+            var userId = _context.Users.First().UserId;
             var newRequest = new BookBorrowingRequest
             {
                 RequestId = Guid.NewGuid(),
-                UserId = _userId,
+                RequestorId = userId,
                 RequestDate = DateTime.UtcNow,
-                Status = RequestStatus.Pending,
-                ProcessedDate = null,
-                ProcessedByUserId = null
+                Status = BorrowingRequestStatus.Waiting,
+                Notes = "New test request"
             };
-            
+
             // Act
-            var result = await _borrowingRequestRepository.CreateAsync(newRequest);
-            await DbContext.SaveChangesAsync();
-            
+            var result = await _repository.CreateAsync(newRequest);
+            await _context.SaveChangesAsync();
+
             // Assert
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.RequestId, Is.EqualTo(newRequest.RequestId));
-            
-            // Verify request was added to context
-            var addedRequest = await DbContext.BookBorrowingRequests.FindAsync(newRequest.RequestId);
-            Assert.That(addedRequest, Is.Not.Null);
-            Assert.That(addedRequest.Status, Is.EqualTo(RequestStatus.Pending));
+            var savedRequest = await _context.BookBorrowingRequests.FindAsync(newRequest.RequestId);
+            Assert.That(savedRequest, Is.Not.Null);
+            Assert.That(savedRequest.RequestorId, Is.EqualTo(userId));
+            Assert.That(savedRequest.Status, Is.EqualTo(BorrowingRequestStatus.Waiting));
         }
 
         [Test]
-        public async Task UpdateAsync_ExistingRequest_UpdatesRequestInContext()
+        public async Task UpdateAsync_ExistingRequest_UpdatesInDatabase()
         {
             // Arrange
-            var existingRequest = await DbContext.BookBorrowingRequests
-                .Where(r => r.Status == RequestStatus.Pending)
+            var request = await _context.BookBorrowingRequests
+                .Where(r => r.Status == BorrowingRequestStatus.Waiting)
                 .FirstAsync();
-            
-            existingRequest.Status = RequestStatus.Approved;
-            existingRequest.ProcessedDate = DateTime.UtcNow;
-            existingRequest.ProcessedByUserId = _userId;
-            
-            // Act
-            await _borrowingRequestRepository.UpdateAsync(existingRequest);
-            await DbContext.SaveChangesAsync();
-            
-            // Assert - Reload from database to verify changes
-            DbContext.Entry(existingRequest).Reload();
-            Assert.That(existingRequest.Status, Is.EqualTo(RequestStatus.Approved));
-            Assert.That(existingRequest.ProcessedDate, Is.Not.Null);
-            Assert.That(existingRequest.ProcessedByUserId, Is.EqualTo(_userId));
-        }
+            request.Status = BorrowingRequestStatus.Approved;
+            request.ApproverId = 2;
+            request.ApprovalDate = DateTime.UtcNow;
 
-        [Test]
-        public async Task GetOverdueRequestsAsync_ReturnsOverdueRequests()
-        {
-            // Arrange - Create an overdue request
-            var approvedRequest = await DbContext.BookBorrowingRequests
-                .Where(r => r.Status == RequestStatus.Approved)
-                .FirstAsync();
-            
-            var detail = await DbContext.BookBorrowingRequestDetails
-                .Where(d => d.RequestId == approvedRequest.RequestId)
-                .FirstAsync();
-            
-            // Set the due date to the past
-            detail.DueDate = DateTime.UtcNow.AddDays(-1);
-            await DbContext.SaveChangesAsync();
-            
             // Act
-            var overdueRequests = (await _borrowingRequestRepository.GetOverdueRequestsAsync(1, 10)).ToList();
-            
-            // Assert
-            Assert.That(overdueRequests, Is.Not.Null);
-            Assert.That(overdueRequests.Count, Is.GreaterThan(0));
-            Assert.That(overdueRequests.Any(r => r.RequestId == approvedRequest.RequestId), Is.True);
-        }
+            await _repository.UpdateAsync(request);
+            await _context.SaveChangesAsync();
 
-        [Test]
-        public async Task GetBorrowingHistoryAsync_ReturnsRequestsWithCompletedDetails()
-        {
-            // Arrange - Create a completed request (book returned)
-            var approvedRequest = await DbContext.BookBorrowingRequests
-                .Where(r => r.Status == RequestStatus.Approved)
-                .FirstAsync();
-            
-            var detail = await DbContext.BookBorrowingRequestDetails
-                .Where(d => d.RequestId == approvedRequest.RequestId)
-                .FirstAsync();
-            
-            // Set the returned date to mark it as completed
-            detail.ReturnedDate = DateTime.UtcNow;
-            detail.Status = BookStatus.Returned;
-            await DbContext.SaveChangesAsync();
-            
-            // Act
-            var history = (await _borrowingRequestRepository.GetBorrowingHistoryAsync(_userId, 1, 10)).ToList();
-            
             // Assert
-            Assert.That(history, Is.Not.Null);
-            Assert.That(history.Count, Is.GreaterThan(0));
-            Assert.That(history.Any(r => r.RequestId == approvedRequest.RequestId), Is.True);
+            var updatedRequest = await _context.BookBorrowingRequests.FindAsync(request.RequestId);
+            Assert.That(updatedRequest, Is.Not.Null);
+            Assert.That(updatedRequest.Status, Is.EqualTo(BorrowingRequestStatus.Approved));
+            Assert.That(updatedRequest.ApproverId, Is.EqualTo(2));
+            Assert.That(updatedRequest.ApprovalDate, Is.Not.Null);
         }
 
         [Test]
         public async Task CountAsync_ReturnsCorrectCount()
         {
             // Act
-            var count = await _borrowingRequestRepository.CountAsync();
-            
+            var result = await _repository.CountAsync();
+
             // Assert
-            Assert.That(count, Is.EqualTo(3));
+            Assert.That(result, Is.EqualTo(3));
         }
 
         [Test]
-        public async Task CountByUserIdAsync_ExistingUser_ReturnsCorrectCount()
+        public async Task HasUserActiveBookLoansAsync_UserWithActiveLoans_ReturnsTrue()
         {
-            // Act
-            var count = await _borrowingRequestRepository.CountByUserIdAsync(_userId);
-            
-            // Assert
-            Assert.That(count, Is.EqualTo(3));
-        }
+            // Arrange
+            int userIdWithActiveLoans = 1;
 
-        [Test]
-        public async Task CountByStatusAsync_ExistingStatus_ReturnsCorrectCount()
-        {
             // Act
-            var count = await _borrowingRequestRepository.CountByStatusAsync(RequestStatus.Pending);
-            
-            // Assert
-            Assert.That(count, Is.EqualTo(1));
-        }
+            var result = await _repository.HasUserActiveBookLoansAsync(userIdWithActiveLoans);
 
-        [Test]
-        public async Task HasActiveRequestsForBookAsync_BookWithActiveRequests_ReturnsTrue()
-        {
-            // Act
-            var result = await _borrowingRequestRepository.HasActiveRequestsForBookAsync(_bookId);
-            
             // Assert
             Assert.That(result, Is.True);
         }
-
-        [Test]
-        public async Task HasActiveRequestsForBookAsync_BookWithNoActiveRequests_ReturnsFalse()
-        {
-            // Arrange - Create a book with no active requests
-            var newBook = new Book
-            {
-                BookId = Guid.NewGuid(),
-                Title = "New Book Without Requests",
-                Author = "Test Author",
-                ISBN = "123-456-789-X",
-                PublishedYear = 2022,
-                CategoryId = (await DbContext.Categories.FirstAsync()).CategoryId,
-                TotalCopies = 5,
-                AvailableCopies = 5,
-                IsActive = true
-            };
-            
-            await DbContext.Books.AddAsync(newBook);
-            await DbContext.SaveChangesAsync();
-            
-            // Act
-            var result = await _borrowingRequestRepository.HasActiveRequestsForBookAsync(newBook.BookId);
-            
-            // Assert
-            Assert.That(result, Is.False);
-        }
     }
-} 
+}

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "eoaxbnzhi6g=",
+  "dgSpecHash": "teCvoEXH5Xo=",
   "success": true,
-  "projectFilePath": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Infrastructure.Data/LibraryManagementSystem.Infrastructure.Data.csproj",
+  "projectFilePath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Infrastructure.Data/LibraryManagementSystem.Infrastructure.Data.csproj",
   "expectedPackageFiles": [
     "/Users/vanchienn_/.nuget/packages/azure.core/1.38.0/azure.core.1.38.0.nupkg.sha512",
     "/Users/vanchienn_/.nuget/packages/azure.identity/1.11.4/azure.identity.1.11.4.nupkg.sha512",

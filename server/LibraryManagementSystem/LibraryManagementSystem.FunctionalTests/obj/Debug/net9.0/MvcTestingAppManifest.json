@@ -1,0 +1,6 @@
+{
+  "LibraryManagementSystem.Application, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/Users\/vanchienn_\/Desktop\/Test\/MidAssignment\/server\/LibraryManagementSystem\/LibraryManagementSystem.Application",
+  "LibraryManagementSystem.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/Users\/vanchienn_\/Desktop\/Test\/MidAssignment\/server\/LibraryManagementSystem\/LibraryManagementSystem.Domain",
+  "LibraryManagementSystem.Infrastructure.Data, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/Users\/vanchienn_\/Desktop\/Test\/MidAssignment\/server\/LibraryManagementSystem\/LibraryManagementSystem.Infrastructure.Data",
+  "WebAPI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/Users\/vanchienn_\/Desktop\/Test\/MidAssignment\/server\/LibraryManagementSystem\/WebAPI"
+}

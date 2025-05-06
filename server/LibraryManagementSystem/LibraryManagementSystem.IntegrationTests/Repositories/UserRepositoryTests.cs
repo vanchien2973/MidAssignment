@@ -1,327 +1,399 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using LibraryManagementSystem.Domain.Entities;
 using LibraryManagementSystem.Domain.Enums;
+using LibraryManagementSystem.Infrastructure.Data.Context;
 using LibraryManagementSystem.Infrastructure.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace LibraryManagementSystem.IntegrationTests.Repositories
 {
-    public class UserRepositoryTests : TestBase
+    [TestFixture]
+    public class UserRepositoryTests
     {
-        private UserRepository _userRepository;
+        private DbContextOptions<LibraryDbContext> _options;
+        private LibraryDbContext _context;
+        private UserRepository _repository;
 
-        public override async Task Setup()
+        [SetUp]
+        public void Setup()
         {
-            await base.Setup();
-            _userRepository = new UserRepository(DbContext);
+            _options = new DbContextOptionsBuilder<LibraryDbContext>()
+                .UseInMemoryDatabase(databaseName: $"LibraryTestDb_{Guid.NewGuid()}")
+                .Options;
+
+            _context = new LibraryDbContext(_options);
+            _repository = new UserRepository(_context);
+
+            SeedDatabase();
         }
 
-        protected override async Task SeedDataAsync()
+        [TearDown]
+        public void TearDown()
         {
-            // Create test users
-            var users = new[]
+            if (_repository is IDisposable disposableRepository)
+            {
+                disposableRepository.Dispose();
+            }
+            _context?.Database.EnsureDeleted();
+            _context?.Dispose();
+        }
+
+        private void SeedDatabase()
+        {
+            var users = new List<User>
             {
                 new User
                 {
-                    UserId = Guid.NewGuid(),
-                    UserName = "admin",
-                    PasswordHash = "hashed_password_1",
+                    UserId = 1,
+                    Username = "admin",
+                    Password = "hashed_password_admin",
                     Email = "admin@example.com",
                     FullName = "Admin User",
-                    Role = UserRole.Admin,
-                    IsActive = true
+                    IsActive = true,
+                    UserType = UserType.SuperUser,
+                    CreatedDate = DateTime.UtcNow.AddMonths(-6)
                 },
                 new User
                 {
-                    UserId = Guid.NewGuid(),
-                    UserName = "librarian",
-                    PasswordHash = "hashed_password_2",
+                    UserId = 2,
+                    Username = "librarian",
+                    Password = "hashed_password_librarian",
                     Email = "librarian@example.com",
                     FullName = "Librarian User",
-                    Role = UserRole.Librarian,
-                    IsActive = true
+                    IsActive = true,
+                    UserType = UserType.SuperUser,
+                    CreatedDate = DateTime.UtcNow.AddMonths(-3)
                 },
                 new User
                 {
-                    UserId = Guid.NewGuid(),
-                    UserName = "member",
-                    PasswordHash = "hashed_password_3",
+                    UserId = 3,
+                    Username = "member",
+                    Password = "hashed_password_member",
                     Email = "member@example.com",
                     FullName = "Member User",
-                    Role = UserRole.Member,
-                    IsActive = true
+                    IsActive = true,
+                    UserType = UserType.NormalUser,
+                    CreatedDate = DateTime.UtcNow.AddMonths(-1)
                 },
                 new User
                 {
-                    UserId = Guid.NewGuid(),
-                    UserName = "inactive",
-                    PasswordHash = "hashed_password_4",
+                    UserId = 4,
+                    Username = "inactive",
+                    Password = "hashed_password_inactive",
                     Email = "inactive@example.com",
                     FullName = "Inactive User",
-                    Role = UserRole.Member,
-                    IsActive = false
+                    IsActive = false,
+                    UserType = UserType.NormalUser,
+                    CreatedDate = DateTime.UtcNow.AddMonths(-2)
                 }
             };
-            
-            await DbContext.Users.AddRangeAsync(users);
-            await DbContext.SaveChangesAsync();
+
+            _context.Users.AddRange(users);
+            _context.SaveChanges();
         }
 
         [Test]
-        public async Task GetByIdAsync_ExistingUser_ReturnsCorrectUser()
+        public async Task GetByIdAsync_ExistingUserId_ReturnsUser()
         {
             // Arrange
-            var existingUser = await DbContext.Users.FirstAsync();
-            
+            int userId = 1;
+
             // Act
-            var user = await _userRepository.GetByIdAsync(existingUser.UserId);
-            
+            var result = await _repository.GetByIdAsync(userId);
+
             // Assert
-            Assert.That(user, Is.Not.Null);
-            Assert.That(user.UserId, Is.EqualTo(existingUser.UserId));
-            Assert.That(user.UserName, Is.EqualTo(existingUser.UserName));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.UserId, Is.EqualTo(userId));
+            Assert.That(result.Username, Is.EqualTo("admin"));
         }
 
         [Test]
-        public async Task GetByIdAsync_NonExistingUser_ReturnsNull()
+        public async Task GetByIdAsync_NonExistentUserId_ReturnsNull()
         {
             // Arrange
-            var nonExistingId = Guid.NewGuid();
-            
+            int nonExistentUserId = 999;
+
             // Act
-            var user = await _userRepository.GetByIdAsync(nonExistingId);
-            
+            var result = await _repository.GetByIdAsync(nonExistentUserId);
+
             // Assert
-            Assert.That(user, Is.Null);
+            Assert.That(result, Is.Null);
         }
 
         [Test]
-        public async Task GetAllAsync_DefaultParameters_ReturnsPaginatedResults()
+        public async Task GetByUsernameAsync_ExistingUsername_ReturnsUser()
         {
             // Arrange
-            int pageNumber = 1;
-            int pageSize = 2;
-            
+            string username = "admin";
+
             // Act
-            var users = (await _userRepository.GetAllAsync(pageNumber, pageSize)).ToList();
-            
+            var result = await _repository.GetByUsernameAsync(username);
+
             // Assert
-            Assert.That(users, Is.Not.Null);
-            Assert.That(users.Count, Is.EqualTo(pageSize));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Username, Is.EqualTo(username));
+            Assert.That(result.UserId, Is.EqualTo(1));
         }
 
         [Test]
-        public async Task GetAllAsync_WithSorting_ReturnsSortedResults()
+        public async Task GetByUsernameAsync_NonExistentUsername_ReturnsNull()
+        {
+            // Arrange
+            string nonExistentUsername = "nonexistent";
+
+            // Act
+            var result = await _repository.GetByUsernameAsync(nonExistentUsername);
+
+            // Assert
+            Assert.That(result, Is.Null);
+        }
+
+        [Test]
+        public async Task GetByEmailAsync_ExistingEmail_ReturnsUser()
+        {
+            // Arrange
+            string email = "admin@example.com";
+
+            // Act
+            var result = await _repository.GetByEmailAsync(email);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Email, Is.EqualTo(email));
+            Assert.That(result.UserId, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task GetByEmailAsync_NonExistentEmail_ReturnsNull()
+        {
+            // Arrange
+            string nonExistentEmail = "nonexistent@example.com";
+
+            // Act
+            var result = await _repository.GetByEmailAsync(nonExistentEmail);
+
+            // Assert
+            Assert.That(result, Is.Null);
+        }
+
+        [Test]
+        public async Task GetUsersAsync_ReturnsAllUsers()
         {
             // Arrange
             int pageNumber = 1;
             int pageSize = 10;
-            
-            // Act - Sort by username ascending
-            var usersAsc = (await _userRepository.GetAllAsync(pageNumber, pageSize, "username", "asc")).ToList();
-            
-            // Assert
-            Assert.That(usersAsc, Is.Not.Null);
-            Assert.That(usersAsc, Is.Ordered.By("UserName"));
-            
-            // Act - Sort by role descending
-            var usersDesc = (await _userRepository.GetAllAsync(pageNumber, pageSize, "role", "desc")).ToList();
-            
-            // Assert
-            Assert.That(usersDesc, Is.Not.Null);
-            Assert.That(usersDesc, Is.Ordered.Descending.By("Role"));
-        }
 
-        [Test]
-        public async Task GetByUsernameAsync_ExistingUsername_ReturnsCorrectUser()
-        {
             // Act
-            var user = await _userRepository.GetByUsernameAsync("admin");
-            
+            var result = await _repository.GetUsersAsync(pageNumber, pageSize);
+
             // Assert
-            Assert.That(user, Is.Not.Null);
-            Assert.That(user.UserName, Is.EqualTo("admin"));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(4));
         }
 
         [Test]
-        public async Task GetByUsernameAsync_NonExistingUsername_ReturnsNull()
+        public async Task GetUsersAsync_WithSearchTerm_ReturnsFilteredUsers()
         {
+            // Arrange
+            int pageNumber = 1;
+            int pageSize = 10;
+            string searchTerm = "admin";
+
             // Act
-            var user = await _userRepository.GetByUsernameAsync("non-existing-user");
-            
+            var result = await _repository.GetUsersAsync(pageNumber, pageSize, searchTerm);
+
             // Assert
-            Assert.That(user, Is.Null);
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(1));
+            Assert.That(result.First().Username, Is.EqualTo("admin"));
         }
 
         [Test]
-        public async Task GetByEmailAsync_ExistingEmail_ReturnsCorrectUser()
+        public async Task GetUsersAsync_WithPagination_ReturnsCorrectPage()
         {
+            // Arrange
+            int pageNumber = 2;
+            int pageSize = 2;
+
             // Act
-            var user = await _userRepository.GetByEmailAsync("admin@example.com");
-            
+            var result = await _repository.GetUsersAsync(pageNumber, pageSize);
+
             // Assert
-            Assert.That(user, Is.Not.Null);
-            Assert.That(user.Email, Is.EqualTo("admin@example.com"));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(2));
+            var userIds = result.Select(u => u.UserId).ToList();
+            Assert.That(userIds, Contains.Item(3));
+            Assert.That(userIds, Contains.Item(4));
         }
 
         [Test]
-        public async Task GetByEmailAsync_NonExistingEmail_ReturnsNull()
+        public async Task GetUsersByIdsAsync_ReturnsUsersWithMatchingIds()
         {
+            // Arrange
+            var userIds = new List<int> { 1, 3 };
+
             // Act
-            var user = await _userRepository.GetByEmailAsync("non-existing@example.com");
-            
+            var result = await _repository.GetUsersByIdsAsync(userIds);
+
             // Assert
-            Assert.That(user, Is.Null);
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(2));
+            foreach (var user in result)
+            {
+                Assert.That(userIds, Contains.Item(user.UserId));
+            }
         }
 
         [Test]
-        public async Task GetActiveUsersByRoleAsync_ExistingRole_ReturnsCorrectUsers()
+        public async Task UsernameExistsAsync_WithExistingUsername_ReturnsTrue()
         {
+            // Arrange
+            string existingUsername = "admin";
+
             // Act
-            var users = (await _userRepository.GetActiveUsersByRoleAsync(UserRole.Member, 1, 10)).ToList();
-            
+            var result = await _repository.UsernameExistsAsync(existingUsername);
+
             // Assert
-            Assert.That(users, Is.Not.Null);
-            Assert.That(users.Count, Is.EqualTo(1)); // Only one active member
-            Assert.That(users.All(u => u.Role == UserRole.Member && u.IsActive), Is.True);
+            Assert.That(result, Is.True);
         }
 
         [Test]
-        public async Task GetActiveUsersByRoleAsync_NonExistingRole_ReturnsEmptyList()
+        public async Task UsernameExistsAsync_WithNonExistentUsername_ReturnsFalse()
         {
-            // Use a role value that doesn't exist in the seeded data
-            var nonExistingRole = (UserRole)999;
-            
+            // Arrange
+            string nonExistentUsername = "nonexistent";
+
             // Act
-            var users = (await _userRepository.GetActiveUsersByRoleAsync(nonExistingRole, 1, 10)).ToList();
-            
+            var result = await _repository.UsernameExistsAsync(nonExistentUsername);
+
             // Assert
-            Assert.That(users, Is.Empty);
+            Assert.That(result, Is.False);
         }
 
         [Test]
-        public async Task CreateAsync_ValidUser_AddsUserToContext()
+        public async Task EmailExistsAsync_WithExistingEmail_ReturnsTrue()
+        {
+            // Arrange
+            string existingEmail = "admin@example.com";
+
+            // Act
+            var result = await _repository.EmailExistsAsync(existingEmail);
+
+            // Assert
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public async Task EmailExistsAsync_WithNonExistentEmail_ReturnsFalse()
+        {
+            // Arrange
+            string nonExistentEmail = "nonexistent@example.com";
+
+            // Act
+            var result = await _repository.EmailExistsAsync(nonExistentEmail);
+
+            // Assert
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task EmailExistsAsync_WithExistingEmailButExceptUserId_ReturnsFalse()
+        {
+            // Arrange
+            string existingEmail = "admin@example.com";
+            int userId = 1;
+
+            // Act
+            var result = await _repository.EmailExistsAsync(existingEmail, userId);
+
+            // Assert
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task CreateAsync_ValidUser_AddsToDatabase()
         {
             // Arrange
             var newUser = new User
             {
-                UserId = Guid.NewGuid(),
-                UserName = "newuser",
-                PasswordHash = "hashed_password_new",
+                Username = "newuser",
+                Password = "hashed_password_new",
                 Email = "newuser@example.com",
                 FullName = "New User",
-                Role = UserRole.Member,
-                IsActive = true
+                IsActive = true,
+                UserType = UserType.NormalUser,
+                CreatedDate = DateTime.UtcNow
             };
-            
+
             // Act
-            var result = await _userRepository.CreateAsync(newUser);
-            await DbContext.SaveChangesAsync();
-            
+            await _repository.CreateAsync(newUser);
+            await _context.SaveChangesAsync();
+
             // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.UserId, Is.EqualTo(newUser.UserId));
-            
-            // Verify user was added to context
-            var addedUser = await DbContext.Users.FindAsync(newUser.UserId);
-            Assert.That(addedUser, Is.Not.Null);
-            Assert.That(addedUser.UserName, Is.EqualTo("newuser"));
+            var savedUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == "newuser");
+            Assert.That(savedUser, Is.Not.Null);
+            Assert.That(savedUser.Email, Is.EqualTo("newuser@example.com"));
         }
 
         [Test]
-        public async Task UpdateAsync_ExistingUser_UpdatesUserInContext()
+        public async Task UpdateAsync_ExistingUser_UpdatesInDatabase()
         {
             // Arrange
-            var existingUser = await DbContext.Users.FirstAsync();
-            existingUser.FullName = "Updated Full Name";
-            existingUser.Email = "updated@example.com";
-            
+            var user = await _context.Users.FindAsync(1);
+            user.FullName = "Updated Admin Name";
+            user.Email = "updated.admin@example.com";
+
             // Act
-            await _userRepository.UpdateAsync(existingUser);
-            await DbContext.SaveChangesAsync();
-            
-            // Assert - Reload from database to verify changes
-            DbContext.Entry(existingUser).Reload();
-            Assert.That(existingUser.FullName, Is.EqualTo("Updated Full Name"));
-            Assert.That(existingUser.Email, Is.EqualTo("updated@example.com"));
+            await _repository.UpdateAsync(user);
+            await _context.SaveChangesAsync();
+
+            // Assert
+            var updatedUser = await _context.Users.FindAsync(1);
+            Assert.That(updatedUser, Is.Not.Null);
+            Assert.That(updatedUser.FullName, Is.EqualTo("Updated Admin Name"));
+            Assert.That(updatedUser.Email, Is.EqualTo("updated.admin@example.com"));
         }
 
         [Test]
-        public async Task DeleteAsync_ExistingUser_RemovesUserFromContext()
+        public async Task DeleteAsync_ExistingUser_RemovesFromDatabase()
         {
             // Arrange
-            var existingUser = await DbContext.Users.FirstAsync();
-            var userId = existingUser.UserId;
-            
+            int userId = 4; // inactive user
+
             // Act
-            await _userRepository.DeleteAsync(userId);
-            await DbContext.SaveChangesAsync();
-            
+            await _repository.DeleteAsync(userId);
+            await _context.SaveChangesAsync();
+
             // Assert
-            var deletedUser = await DbContext.Users.FindAsync(userId);
+            var deletedUser = await _context.Users.FindAsync(userId);
             Assert.That(deletedUser, Is.Null);
         }
 
         [Test]
-        public async Task CountAsync_ReturnsCorrectCount()
+        public async Task CountBySearchTermAsync_ReturnsCorrectCount()
         {
             // Act
-            var count = await _userRepository.CountAsync();
-            
+            var result = await _repository.CountBySearchTermAsync();
+
             // Assert
-            Assert.That(count, Is.EqualTo(4));
+            Assert.That(result, Is.EqualTo(4));
         }
 
         [Test]
-        public async Task GetUserCountByRoleAsync_ExistingRole_ReturnsCorrectCount()
+        public async Task CountBySearchTermAsync_WithSearchTerm_ReturnsFilteredCount()
         {
-            // Act
-            var count = await _userRepository.GetUserCountByRoleAsync(UserRole.Member);
-            
-            // Assert
-            Assert.That(count, Is.EqualTo(2)); // There are 2 members (one active, one inactive)
-        }
+            // Arrange
+            string searchTerm = "member";
 
-        [Test]
-        public async Task UsernameExistsAsync_ExistingUsername_ReturnsTrue()
-        {
             // Act
-            var exists = await _userRepository.UsernameExistsAsync("admin");
-            
-            // Assert
-            Assert.That(exists, Is.True);
-        }
+            var result = await _repository.CountBySearchTermAsync(searchTerm);
 
-        [Test]
-        public async Task UsernameExistsAsync_NonExistingUsername_ReturnsFalse()
-        {
-            // Act
-            var exists = await _userRepository.UsernameExistsAsync("non-existing-user");
-            
             // Assert
-            Assert.That(exists, Is.False);
-        }
-
-        [Test]
-        public async Task EmailExistsAsync_ExistingEmail_ReturnsTrue()
-        {
-            // Act
-            var exists = await _userRepository.EmailExistsAsync("admin@example.com");
-            
-            // Assert
-            Assert.That(exists, Is.True);
-        }
-
-        [Test]
-        public async Task EmailExistsAsync_NonExistingEmail_ReturnsFalse()
-        {
-            // Act
-            var exists = await _userRepository.EmailExistsAsync("non-existing@example.com");
-            
-            // Assert
-            Assert.That(exists, Is.False);
+            Assert.That(result, Is.EqualTo(1));
         }
     }
-} 
+}

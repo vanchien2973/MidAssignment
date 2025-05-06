@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "lL8I7X9agRM=",
+  "dgSpecHash": "kVgudOtJ7u4=",
   "success": true,
-  "projectFilePath": "/Users/vanchienn_/Desktop/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Application/LibraryManagementSystem.Application.csproj",
+  "projectFilePath": "/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.Application/LibraryManagementSystem.Application.csproj",
   "expectedPackageFiles": [
     "/Users/vanchienn_/.nuget/packages/fluentvalidation/11.5.1/fluentvalidation.11.5.1.nupkg.sha512",
     "/Users/vanchienn_/.nuget/packages/fluentvalidation.aspnetcore/11.3.0/fluentvalidation.aspnetcore.11.3.0.nupkg.sha512",

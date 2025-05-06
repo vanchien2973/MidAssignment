@@ -1,0 +1,377 @@
+using System.Net;
+using FluentAssertions;
+using LibraryManagementSystem.Domain.Entities;
+using LibraryManagementSystem.Domain.Enums;
+using LibraryManagementSystem.FunctionalTests;
+using NUnit.Framework;
+
+namespace LibraryManagementSystem.FunctionalTests.Controllers;
+
+[TestFixture]
+public class BorrowingControllerTests : TestBase
+{
+    private string _adminToken = string.Empty;
+    private string _userToken = string.Empty;
+    private Guid _testBookId = Guid.NewGuid();
+    private Guid _testRequestId = Guid.NewGuid();
+    private Guid _testDetailId = Guid.NewGuid();
+    
+    [SetUp]
+    public async Task BorrowingSetup()
+    {
+        await SeedTestDataAsync();
+        
+        // Lấy token cho admin và user thông thường
+        _adminToken = await GetAuthTokenAsync("adminuser", "Test@123");
+        _userToken = await GetAuthTokenAsync("testuser", "Test@123");
+    }
+    
+    private async Task SeedTestDataAsync()
+    {
+        // Thêm dữ liệu người dùng nếu chưa có
+        if (!DbContext.Users.Any())
+        {
+            var testUser = new User
+            {
+                UserId = 1,
+                Username = "testuser",
+                Email = "testuser@example.com",
+                Password = "AQAAAAIAAYagAAAAEOQPIBx45LmkFfKyRIkFx71pcG7sHvpwrNV6JR8oeVTTpMcK9q/KsDpXSJtcawtb8A==", // "Test@123"
+                FullName = "Test User",
+                IsActive = true,
+                UserType = Domain.Enums.UserType.NormalUser,
+                CreatedDate = DateTime.UtcNow
+            };
+            
+            var adminUser = new User
+            {
+                UserId = 2,
+                Username = "adminuser",
+                Email = "admin@example.com",
+                Password = "AQAAAAIAAYagAAAAEOQPIBx45LmkFfKyRIkFx71pcG7sHvpwrNV6JR8oeVTTpMcK9q/KsDpXSJtcawtb8A==", // "Test@123"
+                FullName = "Admin User",
+                IsActive = true,
+                UserType = Domain.Enums.UserType.SuperUser,
+                CreatedDate = DateTime.UtcNow
+            };
+            
+            DbContext.Users.Add(testUser);
+            DbContext.Users.Add(adminUser);
+            await DbContext.SaveChangesAsync();
+        }
+        
+        // Thêm dữ liệu danh mục nếu chưa có
+        if (!DbContext.Categories.Any())
+        {
+            var category = new Category
+            {
+                CategoryId = Guid.NewGuid(),
+                CategoryName = "Fiction",
+                Description = "Fiction books including novels, short stories",
+                CreatedDate = DateTime.UtcNow
+            };
+            
+            DbContext.Categories.Add(category);
+            await DbContext.SaveChangesAsync();
+        }
+        
+        // Thêm dữ liệu sách nếu chưa có
+        if (!DbContext.Books.Any())
+        {
+            var book = new Book
+            {
+                BookId = _testBookId,
+                Title = "Test Book",
+                Author = "Test Author",
+                CategoryId = DbContext.Categories.First().CategoryId,
+                ISBN = "9781234567890",
+                PublishedYear = 2023,
+                Publisher = "Test Publisher",
+                Description = "A book for testing borrowing functionality",
+                TotalCopies = 3,
+                AvailableCopies = 3,
+                IsActive = true
+            };
+            
+            DbContext.Books.Add(book);
+            await DbContext.SaveChangesAsync();
+        }
+        
+        // Thêm dữ liệu yêu cầu mượn và chi tiết yêu cầu mượn nếu chưa có
+        if (!DbContext.BookBorrowingRequests.Any())
+        {
+            // Yêu cầu mượn đang chờ xử lý
+            var pendingRequest = new BookBorrowingRequest
+            {
+                RequestId = _testRequestId,
+                RequestorId = 1, // User ID
+                RequestDate = DateTime.UtcNow.AddDays(-1),
+                Status = BorrowingRequestStatus.Waiting,
+                Notes = "Test request pending approval"
+            };
+            
+            // Yêu cầu mượn đã được chấp nhận
+            var approvedRequest = new BookBorrowingRequest
+            {
+                RequestId = Guid.NewGuid(),
+                RequestorId = 1, // User ID
+                RequestDate = DateTime.UtcNow.AddDays(-5),
+                Status = BorrowingRequestStatus.Approved,
+                Notes = "Test request approved"
+            };
+            
+            DbContext.BookBorrowingRequests.Add(pendingRequest);
+            DbContext.BookBorrowingRequests.Add(approvedRequest);
+            await DbContext.SaveChangesAsync();
+            
+            // Chi tiết yêu cầu mượn cho yêu cầu đang chờ
+            var pendingDetail = new BookBorrowingRequestDetail
+            {
+                DetailId = _testDetailId,
+                RequestId = _testRequestId,
+                BookId = _testBookId,
+                Status = BorrowingDetailStatus.Borrowing,
+                DueDate = null
+            };
+            
+            // Chi tiết yêu cầu mượn cho yêu cầu đã được chấp nhận
+            var borrowingDetail = new BookBorrowingRequestDetail
+            {
+                DetailId = Guid.NewGuid(),
+                RequestId = approvedRequest.RequestId,
+                BookId = _testBookId,
+                Status = BorrowingDetailStatus.Borrowing,
+                DueDate = DateTime.UtcNow.AddDays(14)
+            };
+            
+            DbContext.BookBorrowingRequestDetails.Add(pendingDetail);
+            DbContext.BookBorrowingRequestDetails.Add(borrowingDetail);
+            await DbContext.SaveChangesAsync();
+        }
+    }
+    
+    [Test]
+    public async Task GetBorrowingRequest_WithValidId_ReturnsRequestDetails()
+    {
+        // Arrange
+        SetAuthToken(_userToken);
+        
+        // Act
+        var response = await Client.GetAsync($"/api/borrowing/{_testRequestId}");
+        var request = await DeserializeResponse<BookBorrowingRequestDto>(response);
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        request.Should().NotBeNull();
+        request!.RequestId.Should().Be(_testRequestId);
+        request.Details.Should().NotBeEmpty();
+        request.Details[0].DetailId.Should().Be(_testDetailId);
+    }
+    
+    [Test]
+    public async Task GetUserBorrowingRequests_ReturnsUsersRequests()
+    {
+        // Arrange
+        SetAuthToken(_userToken);
+        
+        // Act
+        var response = await Client.GetAsync("/api/borrowing/user/1");
+        var requests = await DeserializeResponse<BorrowingRequestsResponseDto>(response);
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        requests.Should().NotBeNull();
+        requests!.Results.Should().NotBeEmpty();
+        requests.Results.All(r => r.RequestorId == 1).Should().BeTrue();
+    }
+    
+    [Test]
+    public async Task GetPendingBorrowingRequests_WithAdminToken_ReturnsPendingRequests()
+    {
+        // Arrange
+        SetAuthToken(_adminToken);
+        
+        // Act
+        var response = await Client.GetAsync("/api/borrowing/pending");
+        var requests = await DeserializeResponse<BorrowingRequestsResponseDto>(response);
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        requests.Should().NotBeNull();
+        requests!.Results.Should().NotBeEmpty();
+        requests.Results.All(r => r.Status == BorrowingRequestStatus.Waiting).Should().BeTrue();
+    }
+    
+    [Test]
+    public async Task GetAllBorrowingRequests_WithAdminToken_ReturnsAllRequests()
+    {
+        // Arrange
+        SetAuthToken(_adminToken);
+        
+        // Act
+        var response = await Client.GetAsync("/api/borrowing/all");
+        var result = await DeserializeResponse<PaginatedResponseDto>(response);
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.Should().NotBeNull();
+        result!.Results.Should().NotBeEmpty();
+    }
+    
+    [Test]
+    public async Task CreateBorrowingRequest_Success()
+    {
+        // Arrange
+        SetAuthToken(_userToken);
+        var newRequestDto = new
+        {
+            RequestorId = 1,
+            Notes = "New test borrowing request",
+            BookIds = new[] { _testBookId }
+        };
+        
+        // Act
+        var response = await Client.PostAsync("/api/borrowing", CreateJsonContent(newRequestDto));
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        // Kiểm tra yêu cầu mượn đã được thêm vào cơ sở dữ liệu
+        var createdRequest = DbContext.BookBorrowingRequests
+            .FirstOrDefault(r => r.Notes == "New test borrowing request");
+        createdRequest.Should().NotBeNull();
+        
+        // Kiểm tra chi tiết yêu cầu mượn
+        var createdDetail = DbContext.BookBorrowingRequestDetails
+            .FirstOrDefault(d => d.RequestId == createdRequest!.RequestId);
+        createdDetail.Should().NotBeNull();
+        createdDetail!.BookId.Should().Be(_testBookId);
+    }
+    
+    [Test]
+    public async Task UpdateBorrowingRequestStatus_WithAdminToken_Success()
+    {
+        // Arrange
+        SetAuthToken(_adminToken);
+        var updateStatusDto = new
+        {
+            RequestId = _testRequestId,
+            Status = BorrowingRequestStatus.Approved
+        };
+        
+        // Act
+        var response = await Client.PutAsync("/api/borrowing/status", CreateJsonContent(updateStatusDto));
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        // Kiểm tra trạng thái yêu cầu mượn đã được cập nhật
+        var updatedRequest = await DbContext.BookBorrowingRequests.FindAsync(_testRequestId);
+        updatedRequest.Should().NotBeNull();
+        updatedRequest!.Status.Should().Be(BorrowingRequestStatus.Approved);
+    }
+    
+    [Test]
+    public async Task ReturnBook_Success()
+    {
+        // Arrange
+        SetAuthToken(_userToken);
+        // Tìm một chi tiết yêu cầu đang được mượn
+        var borrowingDetail = DbContext.BookBorrowingRequestDetails
+            .FirstOrDefault(d => d.Status == BorrowingDetailStatus.Borrowing);
+        borrowingDetail.Should().NotBeNull();
+        
+        var returnBookDto = new
+        {
+            DetailId = borrowingDetail!.DetailId,
+            UserId = 1
+        };
+        
+        // Act
+        var response = await Client.PutAsync("/api/borrowing/return", CreateJsonContent(returnBookDto));
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        // Kiểm tra chi tiết yêu cầu đã được cập nhật
+        var updatedDetail = await DbContext.BookBorrowingRequestDetails.FindAsync(borrowingDetail.DetailId);
+        updatedDetail.Should().NotBeNull();
+        updatedDetail!.Status.Should().Be(BorrowingDetailStatus.Returned);
+    }
+    
+    [Test]
+    public async Task ExtendBorrowing_Success()
+    {
+        // Arrange
+        SetAuthToken(_userToken);
+        // Tìm một chi tiết yêu cầu đang được mượn
+        var borrowingDetail = DbContext.BookBorrowingRequestDetails
+            .FirstOrDefault(d => d.Status == BorrowingDetailStatus.Borrowing);
+        borrowingDetail.Should().NotBeNull();
+        
+        var originalDueDate = borrowingDetail!.DueDate;
+        var extendBorrowingDto = new
+        {
+            DetailId = borrowingDetail.DetailId,
+            UserId = 1
+        };
+        
+        // Act
+        var response = await Client.PutAsync("/api/borrowing/extend", CreateJsonContent(extendBorrowingDto));
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        // Kiểm tra ngày đến hạn đã được gia hạn
+        var updatedDetail = await DbContext.BookBorrowingRequestDetails.FindAsync(borrowingDetail.DetailId);
+        updatedDetail.Should().NotBeNull();
+        updatedDetail!.DueDate.Should().BeAfter(originalDueDate!.Value);
+    }
+    
+    #region DTOs for Testing
+    private class BookBorrowingRequestDto
+    {
+        public Guid RequestId { get; set; }
+        public int RequestorId { get; set; }
+        public string RequestorName { get; set; } = string.Empty;
+        public DateTime RequestDate { get; set; }
+        public BorrowingRequestStatus Status { get; set; }
+        public string Notes { get; set; } = string.Empty;
+        public List<BookBorrowingRequestDetailDto> Details { get; set; } = new();
+    }
+    
+    private class BookBorrowingRequestDetailDto
+    {
+        public Guid DetailId { get; set; }
+        public Guid RequestId { get; set; }
+        public Guid BookId { get; set; }
+        public string BookTitle { get; set; } = string.Empty;
+        public BorrowingDetailStatus Status { get; set; }
+        public DateTime? DueDate { get; set; }
+    }
+    
+    private class BorrowingRequestsResponseDto
+    {
+        public List<BorrowingRequestDto> Results { get; set; } = new();
+    }
+    
+    private class BorrowingRequestDto
+    {
+        public Guid RequestId { get; set; }
+        public int RequestorId { get; set; }
+        public string RequestorName { get; set; } = string.Empty;
+        public DateTime RequestDate { get; set; }
+        public BorrowingRequestStatus Status { get; set; }
+        public string Notes { get; set; } = string.Empty;
+        public int BookCount { get; set; }
+    }
+    
+    private class PaginatedResponseDto
+    {
+        public int TotalCount { get; set; }
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public List<BorrowingRequestDto> Results { get; set; } = new();
+    }
+    #endregion
+} 

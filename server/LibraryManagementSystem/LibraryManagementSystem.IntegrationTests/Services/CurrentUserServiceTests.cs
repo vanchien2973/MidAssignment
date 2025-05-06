@@ -1,17 +1,16 @@
-using System.Security.Claims;
 using LibraryManagementSystem.Application.Interfaces.Services;
 using LibraryManagementSystem.Application.Services.Implementation;
 using Microsoft.AspNetCore.Http;
 using Moq;
-using NUnit.Framework;
+using System.Security.Claims;
 
 namespace LibraryManagementSystem.IntegrationTests.Services
 {
     [TestFixture]
     public class CurrentUserServiceTests
     {
+        private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
         private ICurrentUserService _currentUserService;
-        private Mock<IHttpContextAccessor> _httpContextAccessorMock;
         private HttpContext _httpContext;
         private ClaimsIdentity _identity;
         private ClaimsPrincipal _user;
@@ -19,155 +18,154 @@ namespace LibraryManagementSystem.IntegrationTests.Services
         [SetUp]
         public void Setup()
         {
-            _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+            _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
             _httpContext = new DefaultHttpContext();
-            _identity = new ClaimsIdentity();
+            _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(_httpContext);
+            _currentUserService = new CurrentUserService(_mockHttpContextAccessor.Object);
+        }
+
+        private void SetupAuthenticatedUser(int userId, string username, string role)
+        {
+            _identity = new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.Name, username),
+                new Claim(ClaimTypes.Role, role)
+            }, "TestAuthentication");
+
             _user = new ClaimsPrincipal(_identity);
             _httpContext.User = _user;
-            _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(_httpContext);
-            
-            _currentUserService = new CurrentUserService(_httpContextAccessorMock.Object);
         }
 
         [Test]
-        public void GetUserId_WithValidUserIdClaim_ReturnsCorrectId()
+        public void GetUserId_WhenUserIsAuthenticated_ReturnsUserId()
         {
             // Arrange
-            const int expectedUserId = 42;
-            _identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, expectedUserId.ToString()));
-            
+            SetupAuthenticatedUser(123, "testuser", "Member");
+
             // Act
-            int userId = _currentUserService.UserId;
-            
+            var userId = _currentUserService.UserId;
+
             // Assert
-            Assert.That(userId, Is.EqualTo(expectedUserId));
+            Assert.That(userId, Is.EqualTo(123));
         }
 
         [Test]
-        public void GetUserId_WithoutUserIdClaim_ReturnsZero()
+        public void GetUserId_WhenUserIsNotAuthenticated_ReturnsZero()
         {
+            // Arrange
+            _httpContext.User = new ClaimsPrincipal(new ClaimsIdentity());
+
             // Act
-            int userId = _currentUserService.UserId;
-            
+            var userId = _currentUserService.UserId;
+
             // Assert
             Assert.That(userId, Is.EqualTo(0));
         }
 
         [Test]
-        public void GetUserId_WithNonIntegerUserIdClaim_ReturnsZero()
+        public void GetUsername_WhenUserIsAuthenticated_ReturnsUsername()
         {
             // Arrange
-            _identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "not-an-integer"));
-            
+            SetupAuthenticatedUser(123, "testuser", "Member");
+
             // Act
-            int userId = _currentUserService.UserId;
-            
+            var username = _currentUserService.Username;
+
             // Assert
-            Assert.That(userId, Is.EqualTo(0));
+            Assert.That(username, Is.EqualTo("testuser"));
         }
 
         [Test]
-        public void Username_WithIdentityName_ReturnsCorrectUsername()
+        public void GetUsername_WhenUserIsNotAuthenticated_ReturnsNull()
         {
             // Arrange
-            const string expectedUsername = "testuser";
-            _identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, expectedUsername) }, "test");
-            _user = new ClaimsPrincipal(_identity);
-            _httpContext.User = _user;
-            
-            // Act
-            string username = _currentUserService.Username;
-            
-            // Assert
-            Assert.That(username, Is.EqualTo(expectedUsername));
-        }
+            _httpContext.User = new ClaimsPrincipal(new ClaimsIdentity());
 
-        [Test]
-        public void Username_WithoutIdentityName_ReturnsNull()
-        {
             // Act
-            string username = _currentUserService.Username;
-            
+            var username = _currentUserService.Username;
+
             // Assert
             Assert.That(username, Is.Null);
         }
 
         [Test]
-        public void IsAuthenticated_WithAuthenticatedIdentity_ReturnsTrue()
+        public void IsAuthenticated_WhenUserIsAuthenticated_ReturnsTrue()
         {
             // Arrange
-            _identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "testuser") }, "test");
-            _user = new ClaimsPrincipal(_identity);
-            _httpContext.User = _user;
-            
+            SetupAuthenticatedUser(123, "testuser", "Member");
+
             // Act
-            bool isAuthenticated = _currentUserService.IsAuthenticated;
-            
+            var isAuthenticated = _currentUserService.IsAuthenticated;
+
             // Assert
             Assert.That(isAuthenticated, Is.True);
         }
 
         [Test]
-        public void IsAuthenticated_WithoutAuthenticatedIdentity_ReturnsFalse()
+        public void IsAuthenticated_WhenUserIsNotAuthenticated_ReturnsFalse()
         {
+            // Arrange
+            _httpContext.User = new ClaimsPrincipal(new ClaimsIdentity());
+
             // Act
-            bool isAuthenticated = _currentUserService.IsAuthenticated;
-            
+            var isAuthenticated = _currentUserService.IsAuthenticated;
+
             // Assert
             Assert.That(isAuthenticated, Is.False);
         }
 
         [Test]
-        public void IsSuperUser_WithSuperUserRole_ReturnsTrue()
+        public void IsSuperUser_WhenUserIsSuperUser_ReturnsTrue()
         {
             // Arrange
-            _identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "SuperUser") }, "test");
-            _user = new ClaimsPrincipal(_identity);
-            _httpContext.User = _user;
-            
+            SetupAuthenticatedUser(123, "admin", "SuperUser");
+
             // Act
-            bool isSuperUser = _currentUserService.IsSuperUser;
-            
+            var isSuperUser = _currentUserService.IsSuperUser;
+
             // Assert
             Assert.That(isSuperUser, Is.True);
         }
 
         [Test]
-        public void IsSuperUser_WithoutSuperUserRole_ReturnsFalse()
+        public void IsSuperUser_WhenUserIsNotSuperUser_ReturnsFalse()
         {
             // Arrange
-            _identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "NormalUser") }, "test");
-            _user = new ClaimsPrincipal(_identity);
-            _httpContext.User = _user;
-            
+            SetupAuthenticatedUser(123, "testuser", "Member");
+
             // Act
-            bool isSuperUser = _currentUserService.IsSuperUser;
-            
+            var isSuperUser = _currentUserService.IsSuperUser;
+
             // Assert
             Assert.That(isSuperUser, Is.False);
         }
 
         [Test]
-        public void User_ReturnsCorrectUser()
+        public void GetUser_WhenHttpContextExists_ReturnsUserPrincipal()
         {
+            // Arrange
+            SetupAuthenticatedUser(123, "testuser", "Member");
+
             // Act
             var user = _currentUserService.User;
-            
+
             // Assert
-            Assert.That(user, Is.SameAs(_user));
+            Assert.That(user, Is.Not.Null);
+            Assert.That(user, Is.EqualTo(_user));
         }
 
         [Test]
-        public void User_NullHttpContext_ReturnsNull()
+        public void GetUser_WhenHttpContextIsNull_ReturnsNull()
         {
             // Arrange
-            _httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext)null);
-            
+            _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext)null);
+
             // Act
             var user = _currentUserService.User;
-            
+
             // Assert
             Assert.That(user, Is.Null);
         }
     }
-} 
+}

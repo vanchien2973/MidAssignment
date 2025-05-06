@@ -1,298 +1,220 @@
+using LibraryManagementSystem.Domain.Entities;
+using LibraryManagementSystem.Infrastructure.Data.Context;
+using LibraryManagementSystem.Infrastructure.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
+using NUnit.Framework;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using LibraryManagementSystem.Domain.Entities;
-using LibraryManagementSystem.Domain.Enums;
-using LibraryManagementSystem.Infrastructure.Data.Repositories;
-using NUnit.Framework;
 
 namespace LibraryManagementSystem.IntegrationTests.Repositories
 {
-    public class UserActivityLogRepositoryTests : TestBase
+    [TestFixture]
+    public class UserActivityLogRepositoryTests
     {
-        private UserActivityLogRepository _userActivityLogRepository;
-        private Guid _userId;
+        private DbContextOptions<LibraryDbContext> _options;
+        private LibraryDbContext _context;
+        private UserActivityLogRepository _repository;
 
-        public override async Task Setup()
+        [SetUp]
+        public void Setup()
         {
-            await base.Setup();
-            _userActivityLogRepository = new UserActivityLogRepository(DbContext);
+            _options = new DbContextOptionsBuilder<LibraryDbContext>()
+                .UseInMemoryDatabase(databaseName: $"LibraryTestDb_{Guid.NewGuid()}")
+                .Options;
+
+            _context = new LibraryDbContext(_options);
+            _repository = new UserActivityLogRepository(_context);
+
+            SeedDatabase();
         }
 
-        protected override async Task SeedDataAsync()
+        [TearDown]
+        public void TearDown()
         {
-            // Create test user
-            var user = new User
+            if (_repository is IDisposable disposableRepository)
             {
-                UserId = Guid.NewGuid(),
-                UserName = "testuser",
-                PasswordHash = "hashed_password",
-                Email = "test@example.com",
-                FullName = "Test User",
-                Role = UserRole.Member,
+                disposableRepository.Dispose();
+            }
+            _context?.Database.EnsureDeleted();
+            _context?.Dispose();
+        }
+
+        private void SeedDatabase()
+        {
+            var user1 = new User
+            {
+                UserId = 1,
+                Username = "user1",
+                FullName = "User One",
+                Email = "user1@example.com",
+                Password = "hashed_password",
                 IsActive = true
             };
-            
-            _userId = user.UserId;
-            await DbContext.Users.AddAsync(user);
 
-            // Create test activity logs
+            var user2 = new User
+            {
+                UserId = 2,
+                Username = "user2",
+                FullName = "User Two",
+                Email = "user2@example.com",
+                Password = "hashed_password",
+                IsActive = true
+            };
+            _context.Users.AddRange(user1, user2);
+
             var logs = new[]
             {
                 new UserActivityLog
                 {
-                    LogId = Guid.NewGuid(),
-                    UserId = user.UserId,
-                    ActivityType = ActivityType.Login,
-                    ActivityDate = DateTime.UtcNow.AddDays(-5),
-                    Description = "User logged in"
+                    LogId = 1,
+                    UserId = user1.UserId,
+                    ActivityType = "Login",
+                    ActivityDate = DateTime.UtcNow.AddDays(-2),
+                    Details = "User logged in",
+                    IpAddress = "192.168.1.1"
                 },
                 new UserActivityLog
                 {
-                    LogId = Guid.NewGuid(),
-                    UserId = user.UserId,
-                    ActivityType = ActivityType.BookSearch,
-                    ActivityDate = DateTime.UtcNow.AddDays(-4),
-                    Description = "User searched for books"
-                },
-                new UserActivityLog
-                {
-                    LogId = Guid.NewGuid(),
-                    UserId = user.UserId,
-                    ActivityType = ActivityType.BookBorrow,
-                    ActivityDate = DateTime.UtcNow.AddDays(-3),
-                    Description = "User borrowed a book"
-                },
-                new UserActivityLog
-                {
-                    LogId = Guid.NewGuid(),
-                    UserId = user.UserId,
-                    ActivityType = ActivityType.BookReturn,
+                    LogId = 2,
+                    UserId = user1.UserId,
+                    ActivityType = "BookView",
                     ActivityDate = DateTime.UtcNow.AddDays(-1),
-                    Description = "User returned a book"
+                    Details = "User viewed book details",
+                    IpAddress = "192.168.1.1"
+                },
+                new UserActivityLog
+                {
+                    LogId = 3,
+                    UserId = user1.UserId,
+                    ActivityType = "Logout",
+                    ActivityDate = DateTime.UtcNow.AddHours(-12),
+                    Details = "User logged out",
+                    IpAddress = "192.168.1.1"
+                },
+                new UserActivityLog
+                {
+                    LogId = 4,
+                    UserId = user2.UserId,
+                    ActivityType = "Login",
+                    ActivityDate = DateTime.UtcNow.AddHours(-6),
+                    Details = "User logged in",
+                    IpAddress = "192.168.1.2"
+                },
+                new UserActivityLog
+                {
+                    LogId = 5,
+                    UserId = user2.UserId,
+                    ActivityType = "BorrowRequest",
+                    ActivityDate = DateTime.UtcNow.AddHours(-5),
+                    Details = "User requested to borrow a book",
+                    IpAddress = "192.168.1.2"
                 }
             };
-            
-            await DbContext.UserActivityLogs.AddRangeAsync(logs);
-            await DbContext.SaveChangesAsync();
+            _context.UserActivityLogs.AddRange(logs);
+            _context.SaveChanges();
         }
 
         [Test]
-        public async Task GetByIdAsync_ExistingLog_ReturnsCorrectLog()
-        {
-            // Arrange
-            var existingLog = await DbContext.UserActivityLogs.FirstAsync();
-            
-            // Act
-            var log = await _userActivityLogRepository.GetByIdAsync(existingLog.LogId);
-            
-            // Assert
-            Assert.That(log, Is.Not.Null);
-            Assert.That(log.LogId, Is.EqualTo(existingLog.LogId));
-            Assert.That(log.User, Is.Not.Null);
-        }
-
-        [Test]
-        public async Task GetByIdAsync_NonExistingLog_ReturnsNull()
-        {
-            // Arrange
-            var nonExistingId = Guid.NewGuid();
-            
-            // Act
-            var log = await _userActivityLogRepository.GetByIdAsync(nonExistingId);
-            
-            // Assert
-            Assert.That(log, Is.Null);
-        }
-
-        [Test]
-        public async Task GetAllAsync_DefaultParameters_ReturnsPaginatedResults()
-        {
-            // Arrange
-            int pageNumber = 1;
-            int pageSize = 2;
-            
-            // Act
-            var logs = (await _userActivityLogRepository.GetAllAsync(pageNumber, pageSize)).ToList();
-            
-            // Assert
-            Assert.That(logs, Is.Not.Null);
-            Assert.That(logs.Count, Is.EqualTo(pageSize));
-        }
-
-        [Test]
-        public async Task GetAllAsync_WithSorting_ReturnsSortedResults()
-        {
-            // Arrange
-            int pageNumber = 1;
-            int pageSize = 10;
-            
-            // Act - Sort by activity date ascending
-            var logsAsc = (await _userActivityLogRepository.GetAllAsync(pageNumber, pageSize, "activityDate", "asc")).ToList();
-            
-            // Assert
-            Assert.That(logsAsc, Is.Not.Null);
-            Assert.That(logsAsc, Is.Ordered.By("ActivityDate"));
-            
-            // Act - Sort by activity date descending
-            var logsDesc = (await _userActivityLogRepository.GetAllAsync(pageNumber, pageSize, "activityDate", "desc")).ToList();
-            
-            // Assert
-            Assert.That(logsDesc, Is.Not.Null);
-            Assert.That(logsDesc, Is.Ordered.Descending.By("ActivityDate"));
-        }
-
-        [Test]
-        public async Task GetByUserIdAsync_ExistingUser_ReturnsUserLogs()
-        {
-            // Act
-            var logs = (await _userActivityLogRepository.GetByUserIdAsync(_userId, 1, 10)).ToList();
-            
-            // Assert
-            Assert.That(logs, Is.Not.Null);
-            Assert.That(logs.Count, Is.EqualTo(4)); // All logs belong to the same user
-            Assert.That(logs.All(l => l.UserId == _userId), Is.True);
-        }
-
-        [Test]
-        public async Task GetByUserIdAsync_NonExistingUser_ReturnsEmptyList()
-        {
-            // Arrange
-            var nonExistingUserId = Guid.NewGuid();
-            
-            // Act
-            var logs = (await _userActivityLogRepository.GetByUserIdAsync(nonExistingUserId, 1, 10)).ToList();
-            
-            // Assert
-            Assert.That(logs, Is.Empty);
-        }
-
-        [Test]
-        public async Task GetByActivityTypeAsync_ExistingActivityType_ReturnsLogsWithType()
-        {
-            // Act
-            var logs = (await _userActivityLogRepository.GetByActivityTypeAsync(ActivityType.Login, 1, 10)).ToList();
-            
-            // Assert
-            Assert.That(logs, Is.Not.Null);
-            Assert.That(logs.Count, Is.EqualTo(1));
-            Assert.That(logs.All(l => l.ActivityType == ActivityType.Login), Is.True);
-        }
-
-        [Test]
-        public async Task GetByActivityTypeAsync_NonExistingActivityType_ReturnsEmptyList()
-        {
-            // Use an activity type that doesn't exist in the seeded data
-            var nonExistingType = (ActivityType)999;
-            
-            // Act
-            var logs = (await _userActivityLogRepository.GetByActivityTypeAsync(nonExistingType, 1, 10)).ToList();
-            
-            // Assert
-            Assert.That(logs, Is.Empty);
-        }
-
-        [Test]
-        public async Task GetByDateRangeAsync_ValidDateRange_ReturnsLogsInRange()
-        {
-            // Arrange
-            var startDate = DateTime.UtcNow.AddDays(-4).Date;
-            var endDate = DateTime.UtcNow.Date;
-            
-            // Act
-            var logs = (await _userActivityLogRepository.GetByDateRangeAsync(startDate, endDate, 1, 10)).ToList();
-            
-            // Assert
-            Assert.That(logs, Is.Not.Null);
-            Assert.That(logs.Count, Is.EqualTo(3)); // Logs from the last 4 days
-            Assert.That(logs.All(l => l.ActivityDate.Date >= startDate && l.ActivityDate.Date <= endDate), Is.True);
-        }
-
-        [Test]
-        public async Task CreateAsync_ValidLog_AddsLogToContext()
+        public async Task LogActivityAsync_ValidLog_AddsToDatabase()
         {
             // Arrange
             var newLog = new UserActivityLog
             {
-                LogId = Guid.NewGuid(),
-                UserId = _userId,
-                ActivityType = ActivityType.ProfileUpdate,
+                UserId = 1,
+                ActivityType = "ProfileUpdate",
                 ActivityDate = DateTime.UtcNow,
-                Description = "User updated profile"
+                Details = "User updated profile",
+                IpAddress = "192.168.1.1"
             };
-            
+
             // Act
-            var result = await _userActivityLogRepository.CreateAsync(newLog);
-            await DbContext.SaveChangesAsync();
-            
+            var result = await _repository.LogActivityAsync(newLog);
+            await _context.SaveChangesAsync();
+
             // Assert
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.LogId, Is.EqualTo(newLog.LogId));
-            
-            // Verify log was added to context
-            var addedLog = await DbContext.UserActivityLogs.FindAsync(newLog.LogId);
-            Assert.That(addedLog, Is.Not.Null);
-            Assert.That(addedLog.ActivityType, Is.EqualTo(ActivityType.ProfileUpdate));
+            Assert.That(result.LogId, Is.GreaterThan(0));
+            var savedLog = await _context.UserActivityLogs.FindAsync(result.LogId);
+            Assert.That(savedLog, Is.Not.Null);
+            Assert.That(savedLog.ActivityType, Is.EqualTo("ProfileUpdate"));
         }
 
         [Test]
-        public async Task DeleteAsync_ExistingLog_RemovesLogFromContext()
+        public async Task GetUserActivityLogsAsync_ExistingUserId_ReturnsUserLogs()
         {
             // Arrange
-            var existingLog = await DbContext.UserActivityLogs.FirstAsync();
-            var logId = existingLog.LogId;
-            
+            int userId = 1;
+            int pageNumber = 1;
+            int pageSize = 10;
+
             // Act
-            await _userActivityLogRepository.DeleteAsync(logId);
-            await DbContext.SaveChangesAsync();
-            
+            var result = await _repository.GetUserActivityLogsAsync(userId, null, pageNumber, pageSize);
+
             // Assert
-            var deletedLog = await DbContext.UserActivityLogs.FindAsync(logId);
-            Assert.That(deletedLog, Is.Null);
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(3));
+            foreach (var log in result)
+            {
+                Assert.That(log.UserId, Is.EqualTo(userId));
+            }
         }
 
         [Test]
-        public async Task CountAsync_ReturnsCorrectCount()
-        {
-            // Act
-            var count = await _userActivityLogRepository.CountAsync();
-            
-            // Assert
-            Assert.That(count, Is.EqualTo(4));
-        }
-
-        [Test]
-        public async Task CountByUserIdAsync_ExistingUser_ReturnsCorrectCount()
-        {
-            // Act
-            var count = await _userActivityLogRepository.CountByUserIdAsync(_userId);
-            
-            // Assert
-            Assert.That(count, Is.EqualTo(4));
-        }
-
-        [Test]
-        public async Task CountByActivityTypeAsync_ExistingActivityType_ReturnsCorrectCount()
-        {
-            // Act
-            var count = await _userActivityLogRepository.CountByActivityTypeAsync(ActivityType.Login);
-            
-            // Assert
-            Assert.That(count, Is.EqualTo(1));
-        }
-
-        [Test]
-        public async Task CountByDateRangeAsync_ValidDateRange_ReturnsCorrectCount()
+        public async Task GetUserActivityLogsAsync_WithActivityType_ReturnsFilteredLogs()
         {
             // Arrange
-            var startDate = DateTime.UtcNow.AddDays(-4).Date;
-            var endDate = DateTime.UtcNow.Date;
-            
+            int userId = 1;
+            string activityType = "Login";
+            int pageNumber = 1;
+            int pageSize = 10;
+
             // Act
-            var count = await _userActivityLogRepository.CountByDateRangeAsync(startDate, endDate);
-            
+            var result = await _repository.GetUserActivityLogsAsync(userId, activityType, pageNumber, pageSize);
+
             // Assert
-            Assert.That(count, Is.EqualTo(3)); // Logs from the last 4 days
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(1));
+            Assert.That(result.First().ActivityType, Is.EqualTo(activityType));
+        }
+
+        [Test]
+        public async Task GetUserActivityLogsAsync_WithPagination_ReturnsCorrectPage()
+        {
+            // Arrange
+            int userId = 1;
+            int pageNumber = 2;
+            int pageSize = 1;
+
+            // Act
+            var result = await _repository.GetUserActivityLogsAsync(userId, null, pageNumber, pageSize);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(1));
+            // Trang 2 với kích thước 1 sẽ chứa log thứ hai
+            Assert.That(result.First().LogId, Is.EqualTo(2));
+        }
+        
+        [Test]
+        public async Task GetUserActivityLogsAsync_OrderedByActivityDateDescending()
+        {
+            // Arrange
+            int userId = 1;
+            int pageNumber = 1;
+            int pageSize = 10;
+
+            // Act
+            var result = await _repository.GetUserActivityLogsAsync(userId, null, pageNumber, pageSize);
+            var list = result.ToList();
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            // Kiểm tra sắp xếp giảm dần theo ActivityDate
+            for (int i = 0; i < list.Count - 1; i++)
+            {
+                Assert.That(list[i].ActivityDate, Is.GreaterThanOrEqualTo(list[i + 1].ActivityDate));
+            }
         }
     }
-} 
+}
