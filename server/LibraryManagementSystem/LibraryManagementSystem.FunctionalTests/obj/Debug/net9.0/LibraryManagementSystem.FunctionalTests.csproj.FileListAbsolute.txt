@@ -472,3 +472,5 @@
 /Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.FunctionalTests/obj/Debug/net9.0/LibraryManagementSystem.FunctionalTests.pdb
 /Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.FunctionalTests/obj/Debug/net9.0/LibraryManagementSystem.FunctionalTests.genruntimeconfig.cache
 /Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.FunctionalTests/obj/Debug/net9.0/ref/LibraryManagementSystem.FunctionalTests.dll
+/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.FunctionalTests/bin/Debug/net9.0/Castle.Core.dll
+/Users/vanchienn_/Desktop/Test/MidAssignment/server/LibraryManagementSystem/LibraryManagementSystem.FunctionalTests/bin/Debug/net9.0/Moq.dll

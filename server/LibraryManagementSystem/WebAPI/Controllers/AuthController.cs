@@ -29,23 +29,15 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
         }
         
-        try
+        var command = AuthMapper.ToCommand(request);
+        var result = await _mediator.Send(command);
+        
+        if (!result.Success)
         {
-            var command = AuthMapper.ToCommand(request);
-            var result = await _mediator.Send(command);
-            
-            if (!result.Success)
-            {
-                return Unauthorized(AuthMapper.ToAuthResponseDto(result));
-            }
-            
-            return Ok(AuthMapper.ToAuthResponseDto(result));
+            return Unauthorized(AuthMapper.ToAuthResponseDto(result));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during login");
-            throw;
-        }
+        
+        return Ok(AuthMapper.ToAuthResponseDto(result));
     }
     
     [HttpPost("register")]
@@ -57,23 +49,15 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
         }
         
-        try
+        var command = AuthMapper.ToCommand(request);
+        var result = await _mediator.Send(command);
+        
+        if (!result.Success)
         {
-            var command = AuthMapper.ToCommand(request);
-            var result = await _mediator.Send(command);
-            
-            if (!result.Success)
-            {
-                return BadRequest(AuthMapper.ToAuthResponseDto(result));
-            }
-            
-            return Ok(AuthMapper.ToAuthResponseDto(result));
+            return BadRequest(AuthMapper.ToAuthResponseDto(result));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during registration");
-            throw; 
-        }
+        
+        return Ok(AuthMapper.ToAuthResponseDto(result));
     }
     
     [HttpPost("refresh-token")]
@@ -85,55 +69,39 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
         }
         
-        try
+        var command = AuthMapper.ToCommand(request);
+        var result = await _mediator.Send(command);
+        
+        if (!result.Success)
         {
-            var command = AuthMapper.ToCommand(request);
-            var result = await _mediator.Send(command);
-            
-            if (!result.Success)
-            {
-                return Unauthorized(AuthMapper.ToAuthResponseDto(result));
-            }
-            
-            return Ok(AuthMapper.ToAuthResponseDto(result));
+            return Unauthorized(AuthMapper.ToAuthResponseDto(result));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during token refresh");
-            throw;
-        }
+        
+        return Ok(AuthMapper.ToAuthResponseDto(result));
     }
     
     [HttpGet("me")]
     [Authorize]
     public async Task<IActionResult> GetCurrentUser()
     {
-        try
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
         {
-            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Unauthorized(new CurrentUserDto 
-                { 
-                    Success = false, 
-                    Message = "User not authenticated" 
-                });
-            }
-            
-            var query = AuthMapper.ToQuery(userId);
-            var result = await _mediator.Send(query);
-            
-            if (!result.Success)
-            {
-                return NotFound(AuthMapper.ToCurrentUserDto(result));
-            }
-            
-            return Ok(AuthMapper.ToCurrentUserDto(result));
+            return Unauthorized(new CurrentUserDto 
+            { 
+                Success = false, 
+                Message = "User not authenticated" 
+            });
         }
-        catch (Exception ex)
+        
+        var query = AuthMapper.ToQuery(userId);
+        var result = await _mediator.Send(query);
+        
+        if (!result.Success)
         {
-            _logger.LogError(ex, "Error retrieving current user information");
-            throw;
+            return NotFound(AuthMapper.ToCurrentUserDto(result));
         }
+        
+        return Ok(AuthMapper.ToCurrentUserDto(result));
     }
 }

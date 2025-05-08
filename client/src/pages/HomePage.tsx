@@ -39,7 +39,6 @@ export default function HomePage() {
     maxRequestsPerMonth: 3,
     requestsThisMonth: 0,
     activeBorrowings: 0,
-    pendingRequests: 0,
     availableBooks: 0,
     userBorrowings: [],
     userDueSoon: [],

@@ -6,6 +6,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using LibraryManagementSystem.Application.Behaviors;
 using MediatR;
+using WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,6 +101,10 @@ else
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// Add our custom middlewares
+app.UseErrorHandling(); // Must be added before other middleware that might throw exceptions
+app.UseRequestLogging();
 app.UseMiddleware<WebAPI.Middleware.ValidationExceptionHandlerMiddleware>();
 
 app.UseAuthentication();

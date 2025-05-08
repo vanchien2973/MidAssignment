@@ -80,7 +80,7 @@ const LoginForm = () => {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
         <CardDescription className="text-center">
-          Please login to continue
+          Please login to continue Library Management System
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -152,7 +152,7 @@ const LoginForm = () => {
                 )}
               </div>
 
-              <div className="flex justify-end">
+              {/* <div className="flex justify-end">
                 <a
                   href="#"
                   className="text-sm text-blue-600 hover:text-blue-500 hover:underline"
@@ -160,7 +160,7 @@ const LoginForm = () => {
                 >
                   Forgot password?
                 </a>
-              </div>
+              </div> */}
 
               <Button
                 type="submit"

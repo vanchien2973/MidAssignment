@@ -28,23 +28,15 @@ public class BorrowingController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<BookBorrowingRequestDto>> GetBorrowingRequest(Guid id)
     {
-        try
+        var query = BorrowingMapper.ToQuery(id);
+        var result = await _mediator.Send(query);
+        
+        if (result == null)
         {
-            var query = BorrowingMapper.ToQuery(id);
-            var result = await _mediator.Send(query);
-            
-            if (result == null)
-            {
-                return NotFound($"Borrowing request with ID {id} not found");
-            }
+            return NotFound($"Borrowing request with ID {id} not found");
+        }
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving borrowing request {RequestId}", id);
-            throw;
-        }
+        return Ok(result);
     }
 
     [HttpGet("user/{userId}")]
@@ -53,18 +45,10 @@ public class BorrowingController : ControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
     {
-        try
-        {
-            var query = BorrowingMapper.ToQuery(userId, pageNumber, pageSize);
-            var result = await _mediator.Send(query);
-            
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving borrowing requests for user {UserId}", userId);
-            throw;
-        }
+        var query = BorrowingMapper.ToQuery(userId, pageNumber, pageSize);
+        var result = await _mediator.Send(query);
+        
+        return Ok(result);
     }
 
     [HttpGet("pending")]
@@ -73,18 +57,10 @@ public class BorrowingController : ControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
     {
-        try
-        {
-            var query = BorrowingMapper.ToPendingQuery(pageNumber, pageSize);
-            var result = await _mediator.Send(query);
-            
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving pending borrowing requests");
-            throw;
-        }
+        var query = BorrowingMapper.ToPendingQuery(pageNumber, pageSize);
+        var result = await _mediator.Send(query);
+        
+        return Ok(result);
     }
 
     [HttpGet("all")]
@@ -93,29 +69,21 @@ public class BorrowingController : ControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20)
     {
-        try
+        var query = BorrowingMapper.ToPendingQuery(pageNumber, pageSize, includeAllStatuses: true);
+        var result = await _mediator.Send(query);
+        
+        var countQuery = BorrowingMapper.ToCountAllBorrowingRequestsQuery();
+        var totalCount = await _mediator.Send(countQuery);
+        
+        var paginatedResult = new
         {
-            var query = BorrowingMapper.ToPendingQuery(pageNumber, pageSize, includeAllStatuses: true);
-            var result = await _mediator.Send(query);
-            
-            var countQuery = BorrowingMapper.ToCountAllBorrowingRequestsQuery();
-            var totalCount = await _mediator.Send(countQuery);
-            
-            var paginatedResult = new
-            {
-                totalCount = totalCount,
-                pageNumber = pageNumber,
-                pageSize = pageSize,
-                results = result
-            };
-            
-            return Ok(paginatedResult);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving all borrowing requests");
-            throw;
-        }
+            totalCount = totalCount,
+            pageNumber = pageNumber,
+            pageSize = pageSize,
+            results = result
+        };
+        
+        return Ok(paginatedResult);
     }
 
     [HttpGet("overdue")]
@@ -124,70 +92,46 @@ public class BorrowingController : ControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
     {
-        try
-        {
-            var query = BorrowingMapper.ToOverdueQuery(pageNumber, pageSize);
-            var result = await _mediator.Send(query);
-            
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving overdue borrowings");
-            throw;
-        }
+        var query = BorrowingMapper.ToOverdueQuery(pageNumber, pageSize);
+        var result = await _mediator.Send(query);
+        
+        return Ok(result);
     }
 
     [HttpPost]
     [Authorize(Roles = "NormalUser,SuperUser")]
     public async Task<IActionResult> CreateBorrowingRequest([FromBody] CreateBorrowingRequestDto dto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var command = BorrowingMapper.ToCommand(dto);
-            var result = await _mediator.Send(command);
-
-            return StatusCode(201, new { requestId = result, message = "Borrowing request created successfully" });
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating borrowing request for user {UserId}", dto.RequestorId);
-            throw;
-        }
+
+        var command = BorrowingMapper.ToCommand(dto);
+        var result = await _mediator.Send(command);
+
+        return StatusCode(201, new { requestId = result, message = "Borrowing request created successfully" });
     }
 
     [HttpPut("status")]
     [Authorize(Roles = "SuperUser")]
     public async Task<IActionResult> UpdateBorrowingRequestStatus([FromBody] BorrowingRequestStatusUpdateDto dto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var command = BorrowingMapper.ToCommand(dto);
-            var result = await _mediator.Send(command);
-
-            if (result)
-            {
-                return Ok(new { message = "Borrowing request status updated successfully" });
-            }
-            else
-            {
-                return NotFound(new { message = $"Borrowing request with ID {dto.RequestId} not found or cannot be updated" });
-            }
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
+
+        var command = BorrowingMapper.ToCommand(dto);
+        var result = await _mediator.Send(command);
+
+        if (result)
         {
-            _logger.LogError(ex, "Error updating borrowing request status {RequestId}", dto.RequestId);
-            throw;
+            return Ok(new { message = "Borrowing request status updated successfully" });
+        }
+        else
+        {
+            return NotFound(new { message = $"Borrowing request with ID {dto.RequestId} not found or cannot be updated" });
         }
     }
 
@@ -195,29 +139,21 @@ public class BorrowingController : ControllerBase
     [Authorize(Roles = "NormalUser,SuperUser")]
     public async Task<IActionResult> ReturnBook([FromBody] ReturnBookDto dto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var command = BorrowingMapper.ToCommand(dto);
-            var result = await _mediator.Send(command);
-
-            if (result)
-            {
-                return Ok(new { message = "Book returned successfully" });
-            }
-            else
-            {
-                return NotFound(new { message = $"Borrowing detail with ID {dto.DetailId} not found or cannot be returned" });
-            }
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
+
+        var command = BorrowingMapper.ToCommand(dto);
+        var result = await _mediator.Send(command);
+
+        if (result)
         {
-            _logger.LogError(ex, "Error returning book {DetailId}", dto.DetailId);
-            throw;
+            return Ok(new { message = "Book returned successfully" });
+        }
+        else
+        {
+            return NotFound(new { message = $"Borrowing detail with ID {dto.DetailId} not found or cannot be returned" });
         }
     }
 
@@ -225,29 +161,21 @@ public class BorrowingController : ControllerBase
     [Authorize(Roles = "NormalUser,SuperUser")]
     public async Task<IActionResult> ExtendBorrowing([FromBody] ExtendBorrowingDto dto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var command = BorrowingMapper.ToCommand(dto);
-            var result = await _mediator.Send(command);
-
-            if (result)
-            {
-                return Ok(new { message = "Borrowing period extended successfully" });
-            }
-            else
-            {
-                return NotFound(new { message = $"Borrowing detail with ID {dto.DetailId} not found or cannot be extended" });
-            }
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
+
+        var command = BorrowingMapper.ToCommand(dto);
+        var result = await _mediator.Send(command);
+
+        if (result)
         {
-            _logger.LogError(ex, "Error extending borrowing period {DetailId}", dto.DetailId);
-            throw;
+            return Ok(new { message = "Borrowing period extended successfully" });
+        }
+        else
+        {
+            return NotFound(new { message = $"Borrowing detail with ID {dto.DetailId} not found or cannot be extended" });
         }
     }
 }

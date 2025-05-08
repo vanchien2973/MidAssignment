@@ -29,112 +29,80 @@ public class UserController : ControllerBase
     [HttpGet("profile")]
     public async Task<IActionResult> GetProfile()
     {
-        try
+        int userId = _currentUserService.UserId;
+        var query = UserMapper.ToQuery(userId);
+        var user = await _mediator.Send(query);
+        
+        if (user == null)
         {
-            int userId = _currentUserService.UserId;
-            var query = UserMapper.ToQuery(userId);
-            var user = await _mediator.Send(query);
-            
-            if (user == null)
-            {
-                return NotFound(new UserResponseDto 
-                { 
-                    Success = false, 
-                    Message = "User profile not found"
-                });
-            }
-            
-            return Ok(UserMapper.ToResponseDto(user));
+            return NotFound(new UserResponseDto 
+            { 
+                Success = false, 
+                Message = "User profile not found"
+            });
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving user profile");
-            throw;
-        }
+        
+        return Ok(UserMapper.ToResponseDto(user));
     }
     
     [HttpGet("activity-logs")]
     public async Task<IActionResult> GetMyActivityLogs([FromQuery] UserActivityLogSearchDto searchDto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            
-            // Ensure the user is only retrieving their own logs
-            searchDto.UserId = _currentUserService.UserId;
-            
-            var query = UserMapper.ToQuery(searchDto);
-            var logs = await _mediator.Send(query);
-            
-            return Ok(logs);
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving user activity logs");
-            throw;
-        }
+        
+        // Ensure the user is only retrieving their own logs
+        searchDto.UserId = _currentUserService.UserId;
+        
+        var query = UserMapper.ToQuery(searchDto);
+        var logs = await _mediator.Send(query);
+        
+        return Ok(logs);
     }
     
     [HttpPut("profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateUserProfileDto request)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            
-            // Ensure the request contains the user ID
-            request.UserId = _currentUserService.UserId;
-            
-            var command = UserMapper.ToCommand(request);
-            var success = await _mediator.Send(command);
-            
-            if (!success)
-            {
-                return BadRequest(UserMapper.ToResponseDto(success, "Failed to update profile"));
-            }
-            
-            return Ok(UserMapper.ToResponseDto(success, "Profile updated successfully"));
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
+        
+        // Ensure the request contains the user ID
+        request.UserId = _currentUserService.UserId;
+        
+        var command = UserMapper.ToCommand(request);
+        var success = await _mediator.Send(command);
+        
+        if (!success)
         {
-            _logger.LogError(ex, "Error updating user profile");
-            throw;
+            return BadRequest(UserMapper.ToResponseDto(success, "Failed to update profile"));
         }
+        
+        return Ok(UserMapper.ToResponseDto(success, "Profile updated successfully"));
     }
     
     [HttpPut("password")]
     public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordDto request)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            
-            // Ensure the request contains the user ID
-            request.UserId = _currentUserService.UserId;
-            
-            var command = UserMapper.ToCommand(request);
-            var success = await _mediator.Send(command);
-            
-            if (!success)
-            {
-                return BadRequest(UserMapper.ToResponseDto(success, "Failed to update password"));
-            }
-            
-            return Ok(UserMapper.ToResponseDto(success, "Password updated successfully"));
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
+        
+        // Ensure the request contains the user ID
+        request.UserId = _currentUserService.UserId;
+        
+        var command = UserMapper.ToCommand(request);
+        var success = await _mediator.Send(command);
+        
+        if (!success)
         {
-            _logger.LogError(ex, "Error updating user password");
-            throw;
+            return BadRequest(UserMapper.ToResponseDto(success, "Failed to update password"));
         }
+        
+        return Ok(UserMapper.ToResponseDto(success, "Password updated successfully"));
     }
 }

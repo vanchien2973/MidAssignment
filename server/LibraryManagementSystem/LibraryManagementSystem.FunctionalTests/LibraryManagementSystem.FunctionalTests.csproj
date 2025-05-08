@@ -14,6 +14,7 @@
         <PackageReference Include="coverlet.collector" Version="6.0.2"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.4" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1"/>
+        <PackageReference Include="Moq" Version="4.20.70" />
         <PackageReference Include="NUnit" Version="4.2.2"/>
         <PackageReference Include="NUnit.Analyzers" Version="4.3.0"/>
         <PackageReference Include="NUnit3TestAdapter" Version="4.6.0"/>
@@ -29,6 +30,7 @@
       <ProjectReference Include="..\WebAPI\WebAPI.csproj" />
       <ProjectReference Include="..\LibraryManagementSystem.Domain\LibraryManagementSystem.Domain.csproj" />
       <ProjectReference Include="..\LibraryManagementSystem.Infrastructure.Data\LibraryManagementSystem.Infrastructure.Data.csproj" />
+      <ProjectReference Include="..\LibraryManagementSystem.Application\LibraryManagementSystem.Application.csproj" />
     </ItemGroup>
 
 </Project>

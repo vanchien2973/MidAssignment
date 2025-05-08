@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
     FileText, LogOut, Menu,
     ChevronLeft, ChevronRight,
@@ -11,10 +11,18 @@ import {
 import { Button } from "../../components/ui/button";
 import { Sheet, SheetContent } from "../../components/ui/sheet";
 import { cn } from "../../lib/utils";
+import { useAuth } from "../../context/AuthContext";
 
 export const AdminSidebar = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate("/login");
+    };
 
     const navItems = [
         { name: "Dashboard", path: "/admin", icon: BookOpen },
@@ -74,7 +82,11 @@ export const AdminSidebar = () => {
             </div>
 
             <div className="p-4 mt-auto border-t border-gray-200">
-                <Button variant="outline" className="w-full justify-start gap-2">
+                <Button 
+                    variant="outline" 
+                    className="w-full justify-start gap-2"
+                    onClick={handleLogout}
+                >
                     <LogOut className="w-4 h-4" />
                     {!collapsed && <span>Log out</span>}
                 </Button>

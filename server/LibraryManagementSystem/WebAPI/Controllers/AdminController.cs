@@ -24,171 +24,115 @@ public class AdminController : ControllerBase
     [HttpGet("users")]
     public async Task<IActionResult> GetAllUsers([FromQuery] UserSearchDto searchDto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            
-            var query = UserMapper.ToQuery(searchDto);
-            var result = await _mediator.Send(query);
-            
-            return Ok(result);
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting all users");
-            throw;
-        }
+        
+        var query = UserMapper.ToQuery(searchDto);
+        var result = await _mediator.Send(query);
+        
+        return Ok(result);
     }
     
     [HttpGet("users/{id}")]
     public async Task<IActionResult> GetUserById(int id)
     {
-        try
+        var query = UserMapper.ToQuery(id);
+        var user = await _mediator.Send(query);
+        
+        if (user == null)
         {
-            var query = UserMapper.ToQuery(id);
-            var user = await _mediator.Send(query);
-            
-            if (user == null)
-            {
-                return NotFound(new UserResponseDto 
-                { 
-                    Success = false, 
-                    Message = $"User with ID {id} not found" 
-                });
-            }
-            
-            return Ok(UserMapper.ToResponseDto(user));
+            return NotFound(new UserResponseDto 
+            { 
+                Success = false, 
+                Message = $"User with ID {id} not found" 
+            });
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting user {UserId}", id);
-            throw;
-        }
+        
+        return Ok(UserMapper.ToResponseDto(user));
     }
     
     [HttpGet("users/activity-logs")]
     public async Task<IActionResult> GetUserActivityLogs([FromQuery] UserActivityLogSearchDto searchDto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            
-            var query = UserMapper.ToQuery(searchDto);
-            var logs = await _mediator.Send(query);
-            
-            return Ok(logs);
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting user activity logs");
-            throw;
-        }
+        
+        var query = UserMapper.ToQuery(searchDto);
+        var logs = await _mediator.Send(query);
+        
+        return Ok(logs);
     }
     
     [HttpPut("users/{id}/role")]
     public async Task<IActionResult> UpdateUserRole(int id, [FromBody] UpdateUserRoleDto request)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            
-            // Ensure the request contains the user ID
-            request.UserId = id;
-            
-            var updateRoleCommand = UserMapper.ToCommand(request);
-            
-            var success = await _mediator.Send(updateRoleCommand);
-            
-            if (!success)
-            {
-                return NotFound(UserMapper.ToResponseDto(success, $"User with ID {id} not found or could not be updated"));
-            }
-            
-            return Ok(UserMapper.ToResponseDto(success, $"User role with ID {id} has been updated successfully"));
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
+        
+        // Ensure the request contains the user ID
+        request.UserId = id;
+        
+        var updateRoleCommand = UserMapper.ToCommand(request);
+        
+        var success = await _mediator.Send(updateRoleCommand);
+        
+        if (!success)
         {
-            _logger.LogError(ex, "Error updating user role {UserId}", id);
-            throw;
+            return NotFound(UserMapper.ToResponseDto(success, $"User with ID {id} not found or could not be updated"));
         }
+        
+        return Ok(UserMapper.ToResponseDto(success, $"User role with ID {id} has been updated successfully"));
     }
     
     [HttpPost("users/{id}/activate")]
     public async Task<IActionResult> ActivateUser(int id)
     {
-        try
+        var dto = new ActivateUserDto { UserId = id };
+        var command = UserMapper.ToCommand(dto);
+        var success = await _mediator.Send(command);
+        
+        if (!success)
         {
-            var dto = new ActivateUserDto { UserId = id };
-            var command = UserMapper.ToCommand(dto);
-            var success = await _mediator.Send(command);
-            
-            if (!success)
-            {
-                return NotFound(UserMapper.ToResponseDto(success, $"User with ID {id} not found or could not be activated"));
-            }
-            
-            return Ok(UserMapper.ToResponseDto(success, $"User with ID {id} has been activated successfully"));
+            return NotFound(UserMapper.ToResponseDto(success, $"User with ID {id} not found or could not be activated"));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error activating user {UserId}", id);
-            throw;
-        }
+        
+        return Ok(UserMapper.ToResponseDto(success, $"User with ID {id} has been activated successfully"));
     }
     
     [HttpPost("users/{id}/deactivate")]
     public async Task<IActionResult> DeactivateUser(int id)
     {
-        try
+        var dto = new DeactivateUserDto { UserId = id };
+        var command = UserMapper.ToCommand(dto);
+        var success = await _mediator.Send(command);
+        
+        if (!success)
         {
-            var dto = new DeactivateUserDto { UserId = id };
-            var command = UserMapper.ToCommand(dto);
-            var success = await _mediator.Send(command);
-            
-            if (!success)
-            {
-                return NotFound(UserMapper.ToResponseDto(success,
-                    $"User with ID {id} not found or could not be deactivated. SuperUser accounts cannot be deactivated.")); 
-            }
-            
-            return Ok(UserMapper.ToResponseDto(success, $"User with ID {id} has been deactivated successfully"));
+            return NotFound(UserMapper.ToResponseDto(success,
+                $"User with ID {id} not found or could not be deactivated. SuperUser accounts cannot be deactivated.")); 
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deactivating user {UserId}", id);
-            throw;
-        }
+        
+        return Ok(UserMapper.ToResponseDto(success, $"User with ID {id} has been deactivated successfully"));
     }
     
     [HttpDelete("users/{id}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
-        try
+        var dto = new DeleteUserDto { UserId = id };
+        var command = UserMapper.ToCommand(dto);
+        var success = await _mediator.Send(command);
+        
+        if (!success)
         {
-            var dto = new DeleteUserDto { UserId = id };
-            var command = UserMapper.ToCommand(dto);
-            var success = await _mediator.Send(command);
-            
-            if (!success)
-            {
-                return NotFound(UserMapper.ToResponseDto(success, $"User with ID {id} not found or could not be deleted"));
-            }
-            
-            return Ok(UserMapper.ToResponseDto(success, $"User with ID {id} has been deleted successfully"));
+            return NotFound(UserMapper.ToResponseDto(success, $"User with ID {id} not found or could not be deleted"));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting user {UserId}", id);
-            throw;
-        }
+        
+        return Ok(UserMapper.ToResponseDto(success, $"User with ID {id} has been deleted successfully"));
     }
 }

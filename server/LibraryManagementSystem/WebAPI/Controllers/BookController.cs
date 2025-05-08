@@ -29,55 +29,39 @@ public class BookController : ControllerBase
         [FromQuery] string sortBy = null,
         [FromQuery] string sortOrder = null)
     {
-        try
+        var queryParams = new BookQueryParametersDto
         {
-            var queryParams = new BookQueryParametersDto
-            {
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                SortBy = sortBy,
-                SortOrder = sortOrder
-            };
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SortBy = sortBy,
+            SortOrder = sortOrder
+        };
 
-            var query = BookMapper.ToQuery(queryParams);
-            var result = await _mediator.Send(query);
-            
-            var countQuery = BookMapper.ToCountQuery();
-            var totalCount = await _mediator.Send(countQuery);
+        var query = BookMapper.ToQuery(queryParams);
+        var result = await _mediator.Send(query);
+        
+        var countQuery = BookMapper.ToCountQuery();
+        var totalCount = await _mediator.Send(countQuery);
 
-            Response.Headers["X-Total-Count"] = totalCount.ToString();
-            Response.Headers["X-Page-Number"] = pageNumber.ToString();
-            Response.Headers["X-Page-Size"] = pageSize.ToString();
+        Response.Headers["X-Total-Count"] = totalCount.ToString();
+        Response.Headers["X-Page-Number"] = pageNumber.ToString();
+        Response.Headers["X-Page-Size"] = pageSize.ToString();
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving books");
-            throw;
-        }
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<BookDetailsDto>> GetBook(Guid id)
     {
-        try
+        var query = BookMapper.ToQuery(id);
+        var result = await _mediator.Send(query);
+        
+        if (result == null)
         {
-            var query = BookMapper.ToQuery(id);
-            var result = await _mediator.Send(query);
-            
-            if (result == null)
-            {
-                return NotFound($"Book with ID {id} not found");
-            }
+            return NotFound($"Book with ID {id} not found");
+        }
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving book {BookId}", id);
-            throw;
-        }
+        return Ok(result);
     }
 
     [HttpGet("by-category/{categoryId}")]
@@ -86,30 +70,22 @@ public class BookController : ControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
     {
-        try
+        if (categoryId == Guid.Empty)
         {
-            if (categoryId == Guid.Empty)
-            {
-                return BadRequest("Invalid category ID");
-            }
-
-            var query = BookMapper.ToBooksByCategoryQuery(categoryId, pageNumber, pageSize);
-            var result = await _mediator.Send(query);
-            
-            var countQuery = BookMapper.ToBooksByCategoryCountQuery(categoryId);
-            var totalCount = await _mediator.Send(countQuery);
-
-            Response.Headers["X-Total-Count"] = totalCount.ToString();
-            Response.Headers["X-Page-Number"] = pageNumber.ToString();
-            Response.Headers["X-Page-Size"] = pageSize.ToString();
-
-            return Ok(result);
+            return BadRequest("Invalid category ID");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving books for category {CategoryId}", categoryId);
-            throw;
-        }
+
+        var query = BookMapper.ToBooksByCategoryQuery(categoryId, pageNumber, pageSize);
+        var result = await _mediator.Send(query);
+        
+        var countQuery = BookMapper.ToBooksByCategoryCountQuery(categoryId);
+        var totalCount = await _mediator.Send(countQuery);
+
+        Response.Headers["X-Total-Count"] = totalCount.ToString();
+        Response.Headers["X-Page-Number"] = pageNumber.ToString();
+        Response.Headers["X-Page-Size"] = pageSize.ToString();
+
+        return Ok(result);
     }
 
     [HttpGet("available")]
@@ -117,54 +93,38 @@ public class BookController : ControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
     {
-        try
-        {
-            var query = BookMapper.ToAvailableBooksQuery(pageNumber, pageSize);
-            var result = await _mediator.Send(query);
-            
-            var countQuery = BookMapper.ToAvailableBooksCountQuery();
-            var totalCount = await _mediator.Send(countQuery);
+        var query = BookMapper.ToAvailableBooksQuery(pageNumber, pageSize);
+        var result = await _mediator.Send(query);
+        
+        var countQuery = BookMapper.ToAvailableBooksCountQuery();
+        var totalCount = await _mediator.Send(countQuery);
 
-            Response.Headers["X-Total-Count"] = totalCount.ToString();
-            Response.Headers["X-Page-Number"] = pageNumber.ToString();
-            Response.Headers["X-Page-Size"] = pageSize.ToString();
+        Response.Headers["X-Total-Count"] = totalCount.ToString();
+        Response.Headers["X-Page-Number"] = pageNumber.ToString();
+        Response.Headers["X-Page-Size"] = pageSize.ToString();
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving available books");
-            throw;
-        }
+        return Ok(result);
     }
 
     [HttpPost]
     [Authorize(Roles = "SuperUser")]
     public async Task<IActionResult> CreateBook([FromBody] BookCreateDto dto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var command = BookMapper.ToCommand(dto);
-            var result = await _mediator.Send(command);
-
-            if (result)
-            {
-                return StatusCode(201, new { message = "Book created successfully" });
-            }
-            else
-            {
-                return BadRequest(new { message = "Failed to create book" });
-            }
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
+
+        var command = BookMapper.ToCommand(dto);
+        var result = await _mediator.Send(command);
+
+        if (result)
         {
-            _logger.LogError(ex, "Error creating book {BookTitle}", dto.Title);
-            throw;
+            return StatusCode(201, new { message = "Book created successfully" });
+        }
+        else
+        {
+            return BadRequest(new { message = "Failed to create book" });
         }
     }
 
@@ -172,29 +132,21 @@ public class BookController : ControllerBase
     [Authorize(Roles = "SuperUser")]
     public async Task<IActionResult> UpdateBook([FromBody] BookUpdateDto dto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var command = BookMapper.ToCommand(dto);
-            var result = await _mediator.Send(command);
-
-            if (result)
-            {
-                return Ok(new { message = "Book updated successfully" });
-            }
-            else
-            {
-                return NotFound(new { message = $"Book with ID {dto.BookId} not found" });
-            }
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
+
+        var command = BookMapper.ToCommand(dto);
+        var result = await _mediator.Send(command);
+
+        if (result)
         {
-            _logger.LogError(ex, "Error updating book {BookId}", dto.BookId);
-            throw;
+            return Ok(new { message = "Book updated successfully" });
+        }
+        else
+        {
+            return NotFound(new { message = $"Book with ID {dto.BookId} not found" });
         }
     }
 
@@ -202,31 +154,23 @@ public class BookController : ControllerBase
     [Authorize(Roles = "SuperUser")]
     public async Task<IActionResult> DeleteBook(Guid id)
     {
-        try
+        if (id == Guid.Empty)
         {
-            if (id == Guid.Empty)
-            {
-                return BadRequest(new { message = "Invalid book ID" });
-            }
-
-            var command = BookMapper.ToCommand(id);
-            var result = await _mediator.Send(command);
-
-            if (result)
-            {
-                return Ok(new { message = "Book deleted successfully" });
-            }
-            else
-            {
-                return NotFound(new { 
-                    message = $"Book with ID {id} not found or cannot be deleted because it has active borrowings" 
-                });
-            }
+            return BadRequest(new { message = "Invalid book ID" });
         }
-        catch (Exception ex)
+
+        var command = BookMapper.ToCommand(id);
+        var result = await _mediator.Send(command);
+
+        if (result)
         {
-            _logger.LogError(ex, "Error deleting book {BookId}", id);
-            throw;
+            return Ok(new { message = "Book deleted successfully" });
+        }
+        else
+        {
+            return NotFound(new { 
+                message = $"Book with ID {id} not found or cannot be deleted because it has active borrowings" 
+            });
         }
     }
 }

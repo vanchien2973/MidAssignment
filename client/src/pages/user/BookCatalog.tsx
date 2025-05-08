@@ -43,7 +43,7 @@ export const BookCatalog = ({
 
   // Ensure we display the correct books based on search and filter
   useEffect(() => {
-    let booksToDisplay = searchTerm.trim() ? filteredBooks : books;
+    const booksToDisplay = searchTerm.trim() ? filteredBooks : books;
     setDisplayBooks(booksToDisplay);
   }, [books, filteredBooks, searchTerm]);
 

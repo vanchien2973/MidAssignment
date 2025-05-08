@@ -31,108 +31,76 @@ public class CategoryController : ControllerBase
         [FromQuery] string sortOrder = null,
         [FromQuery] string searchTerm = null)
     {
-        try
+        var queryParams = new CategoryQueryParametersDto
         {
-            var queryParams = new CategoryQueryParametersDto
-            {
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                SortBy = sortBy,
-                SortOrder = sortOrder,
-                SearchTerm = searchTerm
-            };
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SortBy = sortBy,
+            SortOrder = sortOrder,
+            SearchTerm = searchTerm
+        };
 
-            var query = CategoryMapper.ToQuery(queryParams);
-            var result = await _mediator.Send(query);
-            
-            var countQuery = CategoryMapper.ToCountQuery(searchTerm);
-            var totalCount = await _mediator.Send(countQuery);
+        var query = CategoryMapper.ToQuery(queryParams);
+        var result = await _mediator.Send(query);
+        
+        var countQuery = CategoryMapper.ToCountQuery(searchTerm);
+        var totalCount = await _mediator.Send(countQuery);
 
-            Response.Headers["X-Total-Count"] = totalCount.ToString();
-            Response.Headers["X-Page-Number"] = pageNumber.ToString();
-            Response.Headers["X-Page-Size"] = pageSize.ToString();
+        Response.Headers["X-Total-Count"] = totalCount.ToString();
+        Response.Headers["X-Page-Number"] = pageNumber.ToString();
+        Response.Headers["X-Page-Size"] = pageSize.ToString();
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving categories");
-            throw;
-        }
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<CategoryDetailsDto>> GetCategory(Guid id)
     {
-        try
+        var query = CategoryMapper.ToQuery(id);
+        var result = await _mediator.Send(query);
+        
+        if (result == null)
         {
-            var query = CategoryMapper.ToQuery(id);
-            var result = await _mediator.Send(query);
-            
-            if (result == null)
-            {
-                return NotFound($"Category with ID {id} not found");
-            }
+            return NotFound($"Category with ID {id} not found");
+        }
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving category {CategoryId}", id);
-            throw;
-        }
+        return Ok(result);
     }
 
     [HttpPost]
     [Authorize(Roles = "SuperUser")]
     public async Task<IActionResult> CreateCategory([FromBody] CategoryCreateDto dto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var command = CategoryMapper.ToCommand(dto);
-            var result = await _mediator.Send(command);
-
-            return StatusCode(201, new { message = "Category created successfully" });
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating category {CategoryName}", dto.CategoryName);
-            throw;
-        }
+
+        var command = CategoryMapper.ToCommand(dto);
+        var result = await _mediator.Send(command);
+
+        return StatusCode(201, new { message = "Category created successfully" });
     }
 
     [HttpPut]
     [Authorize(Roles = "SuperUser")]
     public async Task<IActionResult> UpdateCategory([FromBody] CategoryUpdateDto dto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var command = CategoryMapper.ToCommand(dto);
-            var result = await _mediator.Send(command);
-
-            if (result)
-            {
-                return Ok(new { message = "Category updated successfully" });
-            }
-            else
-            {
-                return NotFound(new { message = $"Category with ID {dto.CategoryId} not found" });
-            }
+            return BadRequest(ModelState);
         }
-        catch (Exception ex)
+
+        var command = CategoryMapper.ToCommand(dto);
+        var result = await _mediator.Send(command);
+
+        if (result)
         {
-            _logger.LogError(ex, "Error updating category {CategoryId}", dto.CategoryId);
-            throw;
+            return Ok(new { message = "Category updated successfully" });
+        }
+        else
+        {
+            return NotFound(new { message = $"Category with ID {dto.CategoryId} not found" });
         }
     }
 
@@ -140,31 +108,23 @@ public class CategoryController : ControllerBase
     [Authorize(Roles = "SuperUser")]
     public async Task<IActionResult> DeleteCategory(Guid id)
     {
-        try
+        if (id == Guid.Empty)
         {
-            if (id == Guid.Empty)
-            {
-                return BadRequest(new { message = "Invalid category ID" });
-            }
-
-            var command = CategoryMapper.ToCommand(id);
-            var result = await _mediator.Send(command);
-
-            if (result)
-            {
-                return Ok(new { message = "Category deleted successfully" });
-            }
-            else
-            {
-                return NotFound(new { 
-                    message = $"Category with ID {id} not found or cannot be deleted because it has associated books" 
-                });
-            }
+            return BadRequest(new { message = "Invalid category ID" });
         }
-        catch (Exception ex)
+
+        var command = CategoryMapper.ToCommand(id);
+        var result = await _mediator.Send(command);
+
+        if (result)
         {
-            _logger.LogError(ex, "Error deleting category {CategoryId}", id);
-            throw;
+            return Ok(new { message = "Category deleted successfully" });
+        }
+        else
+        {
+            return NotFound(new { 
+                message = $"Category with ID {id} not found or cannot be deleted because it has associated books" 
+            });
         }
     }
 }
